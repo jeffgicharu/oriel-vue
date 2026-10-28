@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import ArrowIcon from "@/components/ArrowIcon.vue";
 import FloorPlan from "@/components/FloorPlan.vue";
 import RequestView from "@/components/RequestView.vue";
 import StatusBadge from "@/components/StatusBadge.vue";
@@ -25,6 +26,14 @@ usePageMeta({
 usePageData(() => Promise.all([homes.loadList(filter.value), homes.loadPlans()]), () => filter.value);
 
 const list = computed(() => homes.list.data);
+// The explorer reads the same filters from the address.
+const exploreQuery = computed(() => {
+  const q: Record<string, string> = {};
+  if (filter.value.beds) q.beds = String(filter.value.beds);
+  if (filter.value.max) q.max = String(filter.value.max);
+  if (filter.value.all) q.show = "all";
+  return q;
+});
 
 function choose(event: Event) {
   const el = event.target as HTMLInputElement | HTMLSelectElement;
@@ -139,6 +148,7 @@ function choose(event: Event) {
             </p>
             <div class="results__links">
               <button v-if="narrowed" class="link-arrow as-button" type="button" @click="reset">Clear filters</button>
+              <RouterLink class="link-arrow" :to="{ name: 'explore', query: exploreQuery }">See them in 3D <ArrowIcon /></RouterLink>
             </div>
           </div>
           <div v-if="data.homes.length === 0" class="empty">

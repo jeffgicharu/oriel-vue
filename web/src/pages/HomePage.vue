@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import elevation from "@/generated/elevation.json";
 import places from "@/generated/places.json";
 import ArrowIcon from "@/components/ArrowIcon.vue";
@@ -52,6 +52,34 @@ const stack = computed(() => {
     .map(([level, cells]) => ({ level, cells: cells.sort((x, y) => x.id.localeCompare(y.id)) }));
 });
 
+// The 3D building takes the drawing's place, after the page has painted and
+// only on devices that can draw it well. It lets go of its graphics memory as
+// soon as the visitor moves on.
+const stage = ref<HTMLElement | null>(null);
+let disposeHero: (() => void) | null = null;
+let leaving = false;
+onMounted(async () => {
+  const { canDraw3D } = await import("@/three/model/capable");
+  const hero = stage.value?.closest(".hero");
+  if (!canDraw3D()) {
+    hero?.classList.add("hero--flat");
+    return;
+  }
+  await site.loadModel();
+  const start = async () => {
+    const model = site.model.data;
+    if (leaving || !stage.value || !model) return;
+    const { mountHero } = await import("@/three/model/hero");
+    if (!leaving) disposeHero = mountHero(stage.value, model as never);
+  };
+  if ("requestIdleCallback" in window) window.requestIdleCallback(() => void start(), { timeout: 600 });
+  else setTimeout(() => void start(), 120);
+});
+onBeforeUnmount(() => {
+  leaving = true;
+  disposeHero?.();
+});
+
 const progressTitle = computed(() => {
   const p = o.value?.progress;
   if (!p) return "";
@@ -71,8 +99,8 @@ const plans = [
 </script>
 
 <template>
-  <section class="hero hero--flat drawing-grid" aria-labelledby="hero-title">
-    <div class="hero__stage">
+  <section class="hero drawing-grid" aria-labelledby="hero-title">
+    <div ref="stage" class="hero__stage">
       <!-- The south elevation traces itself floor by floor when the page first paints. -->
       <svg class="hero__drawing" viewBox="0 -12 600 668" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round" aria-hidden="true" focusable="false">
         <path v-for="(s, i) in elevation" :key="i" :d="s.d" :class="s.class" pathLength="1" :style="`--i: ${s.order}`" data-draw />
@@ -83,7 +111,7 @@ const plans = [
       <h1 id="hero-title" class="display hero__title">Homes designed around the light.</h1>
       <p class="lede">Eighty-six apartments over fifteen floors. Every one has a glazed bay that reaches out for the morning sun and the long view over the river.</p>
       <div class="hero__actions">
-        <RouterLink class="btn btn--cobalt" :to="{ name: 'residences' }">Find your home <ArrowIcon /></RouterLink>
+        <RouterLink class="btn btn--cobalt" :to="{ name: 'explore' }">Explore the building <ArrowIcon /></RouterLink>
         <RouterLink class="btn btn--line" :to="{ name: 'viewing-new' }">Book a viewing</RouterLink>
       </div>
     </div>
@@ -158,11 +186,11 @@ const plans = [
       <div class="story-stack__text">
         <p class="sheet-tag label">A-004 · Stacking plan</p>
         <h2 id="story-stack" class="h2">{{ o ? inWords(o.available) : "" }} homes free today.</h2>
-        <p class="lede">Every floor of the building, as the sales team sees it. Open any home to see its plan, the light it gets and what it costs to pay for.</p>
+        <p class="lede">Every floor of the building, as the sales team sees it. Open any floor in the 3D building to see where each home sits and how the light falls on it.</p>
         <ul class="story-stack__key" role="list">
           <li v-for="st in statuses" :key="st"><StatusBadge :status="st" /></li>
         </ul>
-        <RouterLink class="btn btn--line" :to="{ name: 'residences', query: { show: 'all' } }">See every home <ArrowIcon /></RouterLink>
+        <RouterLink class="btn btn--line" :to="{ name: 'explore' }">Explore in 3D <ArrowIcon /></RouterLink>
       </div>
       <!-- The cells are for the mouse; a screen reader hears the summary and finds every home in the list. -->
       <div v-if="o" class="stack" role="group" :aria-label="`Stacking plan: ${o.available} of ${o.total} homes are available.`">

@@ -2,7 +2,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 import { hydrated } from "./helpers";
 
-const pages = ["/", "/residences", "/residences/0704", "/residences/1601", "/residences/types/B", "/compare?homes=0704,0806", "/building", "/location", "/progress", "/buying", "/viewings/new", "/enquire", "/privacy", "/terms", "/shortlist", "/no-such-page"];
+const pages = ["/", "/explore", "/residences", "/residences/0704", "/residences/1601", "/residences/types/B", "/compare?homes=0704,0806", "/building", "/location", "/progress", "/buying", "/viewings/new", "/enquire", "/privacy", "/terms", "/shortlist", "/no-such-page"];
 
 test.describe("accessibility", () => {
   // One engine is enough for the rules axe checks; the journeys run in all of them.

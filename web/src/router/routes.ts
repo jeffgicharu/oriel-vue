@@ -5,6 +5,7 @@ import type { RouteRecordInfo, RouteRecordRaw } from "vue-router";
 
 export const routes: RouteRecordRaw[] = [
   { path: "/", name: "home", component: () => import("@/pages/HomePage.vue") },
+  { path: "/explore", name: "explore", component: () => import("@/pages/ExplorePage.vue"), meta: { nav: "explore" } },
   { path: "/residences", name: "residences", component: () => import("@/pages/ResidencesPage.vue"), meta: { nav: "residences" } },
   // A home's number is its level and position: four digits.
   { path: "/residences/:id(\\d{4})", name: "home-detail", component: () => import("@/pages/HomeDetailPage.vue"), meta: { nav: "residences" } },
@@ -40,6 +41,7 @@ export const routes: RouteRecordRaw[] = [
 type NoParams = Record<never, never>;
 export interface RouteNamedMap {
   home: RouteRecordInfo<"home", "/", NoParams, NoParams>;
+  explore: RouteRecordInfo<"explore", "/explore", NoParams, NoParams>;
   residences: RouteRecordInfo<"residences", "/residences", NoParams, NoParams>;
   "home-detail": RouteRecordInfo<"home-detail", "/residences/:id", { id: string }, { id: string }>;
   "home-type": RouteRecordInfo<"home-type", "/residences/types/:code", { code: string }, { code: string }>;

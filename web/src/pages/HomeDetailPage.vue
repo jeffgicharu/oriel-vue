@@ -165,6 +165,7 @@ usePageMeta(() => {
                 <h2 class="label">In the building</h2>
                 <MiniElevation :level="data.home.level" />
               </div>
+              <RouterLink class="link-arrow" :to="{ name: 'explore', query: { home: data.home.id } }">See it in the 3D building <ArrowIcon /></RouterLink>
             </aside>
           </div>
         </section>

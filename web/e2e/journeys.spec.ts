@@ -53,6 +53,26 @@ test.describe("finding a home", () => {
   });
 });
 
+test.describe("exploring the building", () => {
+  // Headless browsers draw without a graphics chip, so they get the flat
+  // plan: the explorer a phone without one sees.
+  test("choosing a floor and a home, with the filters in the address", async ({ page }) => {
+    await page.goto("/explore");
+    await hydrated(page);
+    await expect(page.getByRole("heading", { level: 1, name: "Explore the building" })).toBeVisible();
+    await page.getByRole("button", { name: /^L09/ }).click();
+    await expect(page.getByRole("button", { name: /^L09/ })).toHaveAttribute("aria-pressed", "true");
+    await expect(page.locator(".explorer__homes")).toContainText("Level 09");
+    await page.locator(".lhome").first().click();
+    await expect(page.locator(".hcard")).toBeVisible();
+    await expect(page).toHaveURL(/home=09\d\d/);
+    await page.locator("label.chip", { hasText: /^3$/ }).click();
+    await expect(page).toHaveURL(/beds=3/);
+    await page.getByRole("button", { name: "Close" }).click();
+    await expect(page.locator(".hcard")).toHaveCount(0);
+  });
+});
+
 test.describe("getting in touch", () => {
   test("booking a viewing, adding it to a calendar and cancelling it", async ({ page, request }) => {
     const home = await availableHome(request);

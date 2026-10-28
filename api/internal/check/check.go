@@ -52,6 +52,8 @@ var pages = []struct {
 	phrase string
 }{
 	{"/", "Oriel · 86 homes in Riverside, Nairobi", "Homes designed around the light."},
+	{"/explore", "Explore the building in 3D · Oriel, Riverside", "Explore the building"},
+	{"/explore?home=0704&beds=2", "Explore the building in 3D · Oriel, Riverside", "Choose a floor to open it up"},
 	{"/residences", "Residences · Oriel, Riverside", "Find your home."},
 	{"/residences?beds=2&floors=upper&show=all", "Residences · Oriel, Riverside", "Two bedrooms"},
 	{"/residences/0704", "Home 0704, Two bedrooms · Oriel, Riverside", "Two bedrooms on level"},

@@ -28,6 +28,7 @@ const year = computed(() => frame.today.slice(0, 4));
         <div class="footer-col">
           <span class="label">The building</span>
           <RouterLink :to="{ name: 'residences' }">Residences</RouterLink>
+          <RouterLink :to="{ name: 'explore' }">Explore in 3D</RouterLink>
           <RouterLink :to="{ name: 'building' }">Amenities and specification</RouterLink>
           <RouterLink :to="{ name: 'progress' }">Construction progress</RouterLink>
         </div>

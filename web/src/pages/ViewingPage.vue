@@ -107,10 +107,10 @@ async function cancel() {
             <div v-if="v.status === 'booked'" class="side-card">
               <h2 class="label">Before you come</h2>
               <ul class="ticks" role="list">
-                <li>Look through the homes and their plans to pick the ones you’d like to see.</li>
+                <li>Explore the building in 3D to pick the floors you’d like to see.</li>
                 <li>Shortlist homes as you browse; we’ll have their plans ready.</li>
               </ul>
-              <RouterLink class="link-arrow" :to="{ name: 'residences' }">See the homes <ArrowIcon /></RouterLink>
+              <RouterLink class="link-arrow" :to="{ name: 'explore' }">Explore in 3D <ArrowIcon /></RouterLink>
             </div>
             <div v-else class="side-card">
               <h2 class="label">Still deciding?</h2>
