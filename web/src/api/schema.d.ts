@@ -437,13 +437,541 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/desk/session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Who is signed in, and their role. */
+        get: operations["deskSession"];
+        put?: never;
+        /**
+         * Sign in to the sales desk with a username and password.
+         * @description Signs in on this browser's own copy, making one if need be, and sets
+         *     the oriel_desk cookie. Wrong details answer 401 without saying which
+         *     was wrong.
+         */
+        post: operations["deskSignIn"];
+        /** Sign out of the desk. */
+        delete: operations["deskSignOut"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/desk/enter/{role}/{sig}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A one-click sign-in link to a fresh copy of the business.
+         * @description Makes a new copy, signs in on it as the first member with the role,
+         *     sets the oriel_copy and oriel_desk cookies and sends the browser to
+         *     the desk. The signature comes from the desk key; a wrong one is
+         *     answered as a page that does not exist.
+         */
+        get: operations["deskEnter"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/desk/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Live updates for the desk's copy, as server-sent events.
+         * @description The same stream as /api/events, for the team alone. Changes made on
+         *     the desk are sent as events of type `unit`, `reservation`,
+         *     `lead-changed` and `prices`.
+         */
+        get: operations["deskEvents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/desk/team": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The sales team, the manager first. */
+        get: operations["deskTeam"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/desk/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The desk's front page, with where leads came from. */
+        get: operations["deskDashboard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/desk/stack": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The stacking plan, every home by floor with its status and price. */
+        get: operations["deskStack"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/desk/homes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A home's drawer, with its history and its reservation. */
+        get: operations["deskHome"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/desk/homes/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Withhold a home from sale or release it. For the sales manager. */
+        post: operations["deskHomeStatus"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/desk/homes/{id}/price": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Give a home its own price, or put it back on the list price. For the sales manager. */
+        post: operations["deskHomePrice"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/desk/leads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The leads, as a table or as the pipeline board.
+         * @description Unknown filters are dropped; the answer says which applied. An agent sees only their own leads.
+         */
+        get: operations["deskLeads"];
+        put?: never;
+        /** Add a lead by hand. */
+        post: operations["deskAddLead"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/desk/leads.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The leads as a spreadsheet, with where each first came from on the website. */
+        get: operations["deskLeadsCSV"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/desk/leads/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A lead's page, with its history, bookings and visits to the website. */
+        get: operations["deskLead"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/desk/leads/{id}/notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Write a note on a lead. */
+        post: operations["deskLeadNote"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/desk/leads/{id}/stage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Move a lead to a stage. */
+        post: operations["deskLeadStage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/desk/leads/{id}/follow-up": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Set or clear the day to follow a lead up on. */
+        post: operations["deskLeadFollowUp"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/desk/leads/{id}/assign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Give a lead to a member of the team. For the sales manager. */
+        post: operations["deskLeadAssign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/desk/leads/{id}/move": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** A card dropped on the board, between two others. */
+        post: operations["deskLeadMove"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/desk/viewings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The viewings agenda, the opening hours and the closed days.
+         * @description An agent sees only their own leads' viewings.
+         */
+        get: operations["deskViewings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/desk/viewings/{ref}/outcome": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Say whether the visitor came to a viewing. */
+        post: operations["deskViewingOutcome"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/desk/viewings/hours": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change the sales suite's opening days, times and parties per slot. For the sales manager. */
+        put: operations["deskViewingHours"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/desk/viewings/blocks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Close a day for viewings. For the sales manager. */
+        post: operations["deskBlockDay"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/desk/viewings/blocks/{day}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Open a closed day again. For the sales manager. */
+        delete: operations["deskUnblockDay"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/desk/reservations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One tab of the reservations, with how many each tab holds.
+         * @description An agent sees only their own leads' reservations.
+         */
+        get: operations["deskReservations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/desk/reservations/{ref}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm a waiting request, issue the letter of offer and reserve the home. For the sales manager.
+         * @description The letter of offer is then at /api/reservations/{ref}/offer.pdf.
+         */
+        post: operations["deskConfirmReservation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/desk/reservations/{ref}/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Turn a reservation down and put the home back on sale. For the sales manager. */
+        post: operations["deskDeclineReservation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/desk/reservations/{ref}/deposit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record the deposit on a confirmed reservation, which sells the home. For the sales manager. */
+        post: operations["deskRecordDeposit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/desk/pricing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The price list in force and every list before it. For the sales manager. */
+        get: operations["deskPricing"];
+        put?: never;
+        /**
+         * Publish a new price list. For the sales manager.
+         * @description The website, every home's schedule and the price-list PDF change at once. Homes with their own price keep it.
+         */
+        post: operations["deskPublishPrices"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/desk/pricing/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** What a new price list would do to every home not yet reserved or sold. For the sales manager. */
+        post: operations["deskPreviewPrices"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/desk/activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Who changed what, and when, sixty lines at a time. */
+        get: operations["deskActivity"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /** @description An error, as RFC 9457 describes. */
         Problem: {
-            /** @description A URI whose last part names the problem: validation, slot-taken, busy, rate-limited, not-found, server. */
+            /** @description A URI whose last part names the problem: validation, slot-taken, not-available, busy, rate-limited, not-found, server, and on the desk signed-out, bad-sign-in, managers-only, not-yours and lead-exists. */
             type: string;
             title: string;
             status: number;
@@ -480,7 +1008,7 @@ export interface components {
             bathrooms: number;
             study: boolean;
             dsq: boolean;
-            /** @description Floor area inside */
+            /** @description Floor area inside, in square metres. */
             internal: number;
             outdoor: number;
             outdoorName: string;
@@ -728,7 +1256,7 @@ export interface components {
                 date: components["schemas"]["Date"];
                 open: boolean;
                 reason: string;
-                /** @description Closed for a holiday or by the sales team */
+                /** @description Closed for a holiday or by the sales team, not the weekly day off. */
                 blocked: boolean;
                 free: number;
                 slots: {
@@ -842,6 +1370,505 @@ export interface components {
             status?: string;
             text?: string;
         };
+        /** @enum {string} */
+        Stage: "new" | "contacted" | "viewing" | "reservation" | "won" | "lost";
+        /**
+         * @description How a visitor arrived, as the site works it out from the link they followed.
+         * @enum {string}
+         */
+        Channel: "Search" | "Paid search" | "Social media" | "Paid social" | "Property portal" | "Email" | "WhatsApp" | "Other website" | "Direct";
+        /**
+         * @description A tab of the reservations page: waiting for a decision, confirmed and awaiting the deposit, sold, or closed.
+         * @enum {string}
+         */
+        ReservationGroup: "waiting" | "confirmed" | "completed" | "closed";
+        Counts: {
+            [key: string]: number;
+        };
+        SignInInput: {
+            username: string;
+            password: string;
+        };
+        /** @description A member of the sales team. */
+        DeskStaff: {
+            id: number;
+            username: string;
+            name: string;
+            /** @enum {string} */
+            role: "manager" | "agent";
+            title: string;
+            colour: string;
+            initials: string;
+        };
+        DeskSession: {
+            staff: components["schemas"]["DeskStaff"];
+            /** @description The sales manager may change prices and statuses, decide reservations and see every lead. */
+            manager: boolean;
+            /** @description Reservation requests waiting for a decision. */
+            waiting: number;
+        };
+        DeskTeam: {
+            team: components["schemas"]["DeskStaff"][];
+        };
+        /** @description A home as the desk sees it, with its price whatever its status. */
+        DeskHome: {
+            id: string;
+            level: number;
+            number: number;
+            /** @enum {string} */
+            type: "A" | "B" | "C" | "D" | "P";
+            typeName: string;
+            title: string;
+            facings: string;
+            internal: number;
+            riverView: boolean;
+            status: components["schemas"]["Status"];
+            statusName: string;
+            price: number;
+            listPrice: number;
+            /** @description The home has its own price rather than the price list's. */
+            overridden: boolean;
+            /** @description A penthouse, which takes half its floor on the stacking plan. */
+            wide: boolean;
+        };
+        DeskReservation: {
+            ref: string;
+            /** @enum {string} */
+            status: "requested" | "confirmed" | "declined" | "lapsed" | "completed" | "cancelled";
+            statusName: string;
+            group: components["schemas"]["ReservationGroup"];
+            leadId: number;
+            name: string;
+            email: string;
+            phone: string;
+            home: string;
+            plan: string;
+            planName: string;
+            price: number;
+            /** @description The buyer's own note. */
+            note: string;
+            agent: string;
+            requested: components["schemas"]["LocalTime"];
+            holdEnds: components["schemas"]["LocalTime"];
+            holdSecondsLeft: number;
+            /** @description A time in Nairobi, or empty. */
+            decided: string;
+            decidedBy: string;
+            declineReason: string;
+            offerNumber: string;
+            /** @description The letter of offer's address, or empty before one is issued. */
+            offer: string;
+            /** @description A time in Nairobi, or empty. */
+            deposit: string;
+            depositAmount: number;
+            /** @description A tenth of the price, which the deposit form starts from. */
+            suggestedDeposit: number;
+        };
+        DeskViewing: {
+            ref: string;
+            leadId: number;
+            name: string;
+            email: string;
+            phone: string;
+            /** @description The home the visitor asked to see, or empty. */
+            home: string;
+            start: components["schemas"]["LocalTime"];
+            minutes: number;
+            party: number;
+            /** @enum {string} */
+            status: "booked" | "attended" | "no_show" | "cancelled";
+            notes: string;
+            /** @description What the agent wrote after the visit. */
+            outcome: string;
+            agent: string;
+            booked: components["schemas"]["LocalTime"];
+            /** @description A booked viewing whose time has come, waiting for the agent to say whether the visitor came. */
+            due: boolean;
+        };
+        DeskLead: {
+            id: number;
+            name: string;
+            email: string;
+            phone: string;
+            /** @description The website's channel for their first arrival, or what the team wrote down, such as Referral. */
+            source: string;
+            stage: components["schemas"]["Stage"];
+            stageTitle: string;
+            agentId: number;
+            agent: string;
+            agentColour: string;
+            interest: string;
+            budget: number;
+            /** @enum {string} */
+            buying: "" | "home" | "investment";
+            followUpOn: components["schemas"]["DateOrEmpty"];
+            overdue: boolean;
+            lostReason: string;
+            created: components["schemas"]["LocalTime"];
+            updated: components["schemas"]["LocalTime"];
+            stageChanged: components["schemas"]["LocalTime"];
+        };
+        DeskDashboard: {
+            asOf: components["schemas"]["Date"];
+            counts: components["schemas"]["Counts"];
+            total: number;
+            /** @description The price of every home still to sell: available, on hold or withheld. */
+            stock: number;
+            /** @description The price of every confirmed or completed reservation. */
+            soldValue: number;
+            /** @description The homes sold in each of the last eight months, this one last. */
+            months: {
+                month: string;
+                label: string;
+                sold: number;
+                value: number;
+            }[];
+            /** @description Leads in the last seven days. */
+            newLeads: number;
+            /** @description Leads in the seven days before. */
+            newLeadsWas: number;
+            /** @description How far leads have got. A lead counts in every stage it has passed; a lost lead only in Lost and New. */
+            funnel: {
+                stage: components["schemas"]["Stage"];
+                label: string;
+                n: number;
+                reached: number;
+                percent: number;
+                lost: boolean;
+            }[];
+            /** @description Every lead by where it came from, the commonest first. */
+            sources: {
+                source: string;
+                leads: number;
+            }[];
+            /** @description The viewings from today to a week ahead. */
+            week: components["schemas"]["DeskViewing"][];
+            waitingTotal: number;
+            /** @description The six newest reservation requests waiting for a decision. */
+            waiting: components["schemas"]["DeskReservation"][];
+            followUpsTotal: number;
+            /** @description Up to six open leads due a follow-up; an agent sees only their own. */
+            followUps: components["schemas"]["DeskLead"][];
+            /**
+             * @description The leads the website brought in, by the channel of their first
+             *     arrival: how many came, how many of them booked a viewing they did
+             *     not cancel, and how many asked to reserve a home. Leads added by
+             *     hand, and people the team knew before they used the website, are
+             *     left out. Every channel is listed, in order.
+             */
+            channels: {
+                channel: components["schemas"]["Channel"];
+                leads: number;
+                viewed: number;
+                reserved: number;
+            }[];
+            /** @description Taps on WhatsApp links in the last 30 days, by the channel each visitor arrived through. Every channel is listed, in order. */
+            whatsapp: {
+                channel: components["schemas"]["Channel"];
+                taps: number;
+            }[];
+        };
+        DeskStack: {
+            /** @description Every floor with homes, the top floor first. */
+            floors: {
+                level: number;
+                name: string;
+                homes: components["schemas"]["DeskHome"][];
+            }[];
+            counts: components["schemas"]["Counts"];
+            total: number;
+        };
+        DeskHomeDetail: {
+            home: components["schemas"]["DeskHome"];
+            /** @description The home's changes, newest first. A status change runs between statuses; a price change between prices or "list price". */
+            history: {
+                at: components["schemas"]["LocalTime"];
+                /** @enum {string} */
+                kind: "status" | "price";
+                from: string;
+                to: string;
+                reason: string;
+                staff: string;
+            }[];
+            reservation: components["schemas"]["DeskReservation"] | null;
+            /** @description Only the sales manager may change a home's status or price. */
+            canChange: boolean;
+            /** @description What a change just did; empty on a read. */
+            notice: string;
+        };
+        DeskStatusInput: {
+            /** @enum {string} */
+            status: "withheld" | "available";
+            reason: string;
+        };
+        DeskPriceInput: {
+            /** @description In KES, to the nearest 10,000; 0 puts the home back on the list price. */
+            price: number;
+            reason: string;
+        };
+        DeskLeads: {
+            /** @description The filters as they were applied. */
+            filter: {
+                stage: components["schemas"]["Stage"] | "";
+                /** @description The member whose leads are shown, or 0 for everyone's. */
+                agent: number;
+                q: string;
+                source: string;
+                /** @enum {string} */
+                sort: "recent" | "name" | "follow" | "board";
+                /** @enum {string} */
+                view: "table" | "board";
+            };
+            /** @description The table, up to 300; empty on the board. */
+            leads: components["schemas"]["DeskLead"][];
+            /** @description More leads match than the table holds. */
+            more: boolean;
+            /** @description The board, a column for each stage; empty for the table. The won and lost columns show only their most recent. */
+            columns: {
+                stage: components["schemas"]["Stage"];
+                title: string;
+                leads: components["schemas"]["DeskLead"][];
+                /** @description Leads at the stage the board leaves out. */
+                more: number;
+            }[];
+            counts: components["schemas"]["Counts"];
+            total: number;
+            /** @description Every source leads have come from, the commonest first. */
+            sources: string[];
+            /** @description The same list as a spreadsheet. */
+            csv: string;
+        };
+        /** @description One arrival at the site. */
+        DeskArrival: {
+            channel: components["schemas"]["Channel"];
+            source: string;
+            medium: string;
+            campaign: string;
+            /** @description The host of the site that sent the visitor. */
+            referrer: string;
+            landing: string;
+            at: components["schemas"]["LocalTime"];
+        };
+        DeskLeadPage: {
+            lead: components["schemas"]["DeskLead"];
+            /** @description The lead's history, newest first. */
+            timeline: {
+                at: components["schemas"]["LocalTime"];
+                kind: string;
+                body: string;
+                home: string;
+                staff: string;
+            }[];
+            viewings: components["schemas"]["DeskViewing"][];
+            reservations: components["schemas"]["DeskReservation"][];
+            /** @description What the lead sent from the website, newest first, with where they came from each time. */
+            touches: {
+                at: components["schemas"]["LocalTime"];
+                /** @enum {string} */
+                action: "enquiry" | "viewing" | "reservation";
+                home: string;
+                last: components["schemas"]["DeskArrival"];
+                first: components["schemas"]["DeskArrival"];
+            }[];
+            /** @description What a change just did; empty on a read. */
+            notice: string;
+        };
+        DeskLeadInput: {
+            name: string;
+            email: string;
+            phone: string;
+            /** @description Such as Walk-in, Phone call or Referral; Walk-in when left out. */
+            source?: string;
+            interest?: string;
+            /** @enum {string} */
+            buying?: "home" | "investment";
+            /** @description Who looks after the lead. Only the manager chooses; an agent's new lead is their own. */
+            agent?: number;
+            note?: string;
+        };
+        DeskNoteInput: {
+            body: string;
+        };
+        DeskStageInput: {
+            stage: components["schemas"]["Stage"];
+            /** @description Why a lost lead was lost. */
+            reason?: string;
+        };
+        DeskFollowUpInput: {
+            day: components["schemas"]["DateOrEmpty"];
+        };
+        DeskAssignInput: {
+            agent: number;
+        };
+        DeskMoveInput: {
+            stage: components["schemas"]["Stage"];
+            /** @description Why a lost lead was lost. */
+            reason?: string;
+            /** @description The card now above it, or 0 at the top. */
+            after?: number;
+            /** @description The card now below it, or 0 at the bottom. */
+            before?: number;
+        };
+        DeskHours: {
+            /** @description 0 for Sunday to 6 for Saturday. */
+            days: number[];
+            times: string[];
+            /** @description Parties a slot takes at once. */
+            capacity: number;
+            /** @description How long a visit takes. */
+            minutes: number;
+        };
+        DeskBlock: {
+            day: components["schemas"]["Date"];
+            reason: string;
+        };
+        DeskAgenda: {
+            from: components["schemas"]["Date"];
+            to: components["schemas"]["Date"];
+            days: {
+                date: components["schemas"]["Date"];
+                /** @description The suite opens that day and nobody has closed it. */
+                open: boolean;
+                /** @description Why the day was closed, or empty. */
+                blocked: string;
+                /** @description Visits booked that day, leaving out cancelled ones. */
+                viewings: number;
+            }[];
+            /** @description Every viewing in those days, earliest first. */
+            viewings: components["schemas"]["DeskViewing"][];
+            hours: components["schemas"]["DeskHours"];
+            /** @description Every closed day from today on. */
+            blocks: components["schemas"]["DeskBlock"][];
+        };
+        DeskOutcomeInput: {
+            /** @enum {string} */
+            outcome: "attended" | "no_show";
+            notes?: string;
+        };
+        DeskHoursInput: {
+            /** @description 0 for Sunday to 6 for Saturday. */
+            days: number[];
+            /** @description 24-hour start times, such as 10:00. */
+            times: string[];
+            capacity: number;
+        };
+        DeskBlockInput: {
+            day: components["schemas"]["Date"];
+            reason: string;
+        };
+        DeskViewingResult: {
+            viewing: components["schemas"]["DeskViewing"];
+            notice: string;
+        };
+        DeskHoursResult: {
+            hours: components["schemas"]["DeskHours"];
+            notice: string;
+        };
+        DeskBlocksResult: {
+            blocks: components["schemas"]["DeskBlock"][];
+            notice: string;
+        };
+        DeskReservations: {
+            group: components["schemas"]["ReservationGroup"];
+            counts: components["schemas"]["Counts"];
+            /** @description The waiting by when their hold lapses, the rest newest first. */
+            reservations: components["schemas"]["DeskReservation"][];
+        };
+        DeskReservationResult: {
+            reservation: components["schemas"]["DeskReservation"];
+            home: components["schemas"]["DeskHome"];
+            notice: string;
+        };
+        DeskDeclineInput: {
+            /** @description Shown to the buyer. */
+            reason: string;
+        };
+        DeskDepositInput: {
+            /** @description In KES. */
+            amount: number;
+        };
+        /** @description The price in KES of each type on level 2 without a river view, to the nearest 10,000. */
+        PriceBases: {
+            A: number;
+            B: number;
+            C: number;
+            D: number;
+            P: number;
+        };
+        /** @description A price list: a base price for each type, raised for each floor above level 2 and for a river view. */
+        PriceListInput: {
+            base: components["schemas"]["PriceBases"];
+            /** @description The premium for each floor above level 2, in basis points: 100 is 1%. */
+            floorBP: number;
+            /** @description The premium for a river view, in basis points. */
+            riverBP: number;
+        };
+        DeskPricingInput: {
+            list: components["schemas"]["PriceListInput"];
+            /** @description What changed. */
+            note?: string;
+        };
+        DeskPriceList: {
+            id: number;
+            published: components["schemas"]["LocalTime"];
+            by: string;
+            note: string;
+            base: components["schemas"]["PriceBases"];
+            floorBP: number;
+            riverBP: number;
+        };
+        DeskPricing: {
+            current: components["schemas"]["DeskPriceList"];
+            /** @description Every published list, newest first. */
+            history: components["schemas"]["DeskPriceList"][];
+            /** @description What publishing just did; empty on a read. */
+            notice: string;
+        };
+        DeskPricePreview: {
+            list: components["schemas"]["PriceListInput"];
+            note: string;
+            /** @description Every home not yet reserved or sold, those whose price changes first. */
+            rows: {
+                home: string;
+                /** @enum {string} */
+                type: "A" | "B" | "C" | "D" | "P";
+                level: number;
+                status: components["schemas"]["Status"];
+                old: number;
+                new: number;
+                change: number;
+                /** @description A home with its own price, which a new list leaves alone. */
+                keepsOwn: boolean;
+            }[];
+            oldTotal: number;
+            newTotal: number;
+            /** @description Homes the list would reprice. */
+            changed: number;
+            /** @description Homes keeping a price of their own. */
+            keptOwn: number;
+        };
+        DeskActivity: {
+            /** @enum {string} */
+            kind: "" | "staff" | "visitor" | "system";
+            offset: number;
+            entries: {
+                id: number;
+                at: components["schemas"]["LocalTime"];
+                /** @enum {string} */
+                actor: "staff" | "visitor" | "system";
+                staff: string;
+                colour: string;
+                action: string;
+                subject: string;
+                detail: string;
+                /** @description The desk's page about the subject, or empty. */
+                link: string;
+            }[];
+            /** @description There are older lines. */
+            more: boolean;
+            /** @description The offset that reads them. */
+            next: number;
+        };
     };
     responses: {
         /** @description A problem document. */
@@ -853,11 +1880,40 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
+        /** @description Changed; the lead's page as it now stands, with what the change did. */
+        DeskLeadChanged: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["DeskLeadPage"];
+            };
+        };
+        /** @description Decided; the reservation and its home as they now stand. */
+        DeskReservationDecided: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["DeskReservationResult"];
+            };
+        };
     };
     parameters: {
         /** @description The home's number, its level and position, such as 0704. */
         HomeId: string;
         ViewingRef: string;
+        LeadId: number;
+        ReservationRef: string;
+        LeadStage: components["schemas"]["Stage"];
+        /** @description Only this member's leads. The manager alone may choose; an agent always sees only their own. */
+        LeadAgent: number;
+        /** @description Name, email, phone or interest containing this. */
+        LeadQuery: string;
+        /** @description Only leads from this source, such as Paid social or Referral. */
+        LeadSource: string;
+        /** @description Latest activity first when left out. */
+        LeadSort: "recent" | "name" | "follow" | "board";
     };
     requestBodies: never;
     headers: never;
@@ -1108,7 +2164,7 @@ export interface operations {
     paymentPlans: {
         parameters: {
             query?: {
-                /** @description In KES; 18 */
+                /** @description In KES; 18,000,000 when left out. */
                 price?: number;
             };
             header?: never;
@@ -1475,6 +2531,862 @@ export interface operations {
                 };
                 content?: never;
             };
+        };
+    };
+    deskSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The member signed in. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeskSession"];
+                };
+            };
+            401: components["responses"]["Problem"];
+        };
+    };
+    deskSignIn: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SignInInput"];
+            };
+        };
+        responses: {
+            /** @description Signed in. */
+            200: {
+                headers: {
+                    /** @description The oriel_desk session, and the oriel_copy cookie when a copy was made. */
+                    "Set-Cookie"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeskSession"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            415: components["responses"]["Problem"];
+            429: components["responses"]["Problem"];
+            503: components["responses"]["Problem"];
+        };
+    };
+    deskSignOut: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Signed out, or never signed in. */
+            204: {
+                headers: {
+                    /** @description The oriel_desk cookie, expired. */
+                    "Set-Cookie"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    deskEnter: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                role: "manager" | "agent";
+                sig: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Signed in; on to /desk. */
+            303: {
+                headers: {
+                    Location?: "/desk";
+                    /** @description The new copy and the session. */
+                    "Set-Cookie"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: components["responses"]["Problem"];
+            503: components["responses"]["Problem"];
+        };
+    };
+    deskEvents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The stream. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": string;
+                };
+            };
+            401: components["responses"]["Problem"];
+            503: components["responses"]["Problem"];
+        };
+    };
+    deskTeam: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The team. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeskTeam"];
+                };
+            };
+            401: components["responses"]["Problem"];
+        };
+    };
+    deskDashboard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The dashboard. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeskDashboard"];
+                };
+            };
+            401: components["responses"]["Problem"];
+        };
+    };
+    deskStack: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The stacking plan. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeskStack"];
+                };
+            };
+            401: components["responses"]["Problem"];
+        };
+    };
+    deskHome: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The home's number, its level and position, such as 0704. */
+                id: components["parameters"]["HomeId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The home. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeskHomeDetail"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    deskHomeStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The home's number, its level and position, such as 0704. */
+                id: components["parameters"]["HomeId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeskStatusInput"];
+            };
+        };
+        responses: {
+            /** @description Changed; the home's drawer as it now stands. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeskHomeDetail"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            415: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    deskHomePrice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The home's number, its level and position, such as 0704. */
+                id: components["parameters"]["HomeId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeskPriceInput"];
+            };
+        };
+        responses: {
+            /** @description Changed; the home's drawer as it now stands. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeskHomeDetail"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            415: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    deskLeads: {
+        parameters: {
+            query?: {
+                stage?: components["parameters"]["LeadStage"];
+                /** @description Only this member's leads. The manager alone may choose; an agent always sees only their own. */
+                agent?: components["parameters"]["LeadAgent"];
+                /** @description Name, email, phone or interest containing this. */
+                q?: components["parameters"]["LeadQuery"];
+                /** @description Only leads from this source, such as Paid social or Referral. */
+                source?: components["parameters"]["LeadSource"];
+                /** @description Latest activity first when left out. */
+                sort?: components["parameters"]["LeadSort"];
+                /** @description `board` gives a column for each stage instead of the table. */
+                view?: "table" | "board";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The leads. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeskLeads"];
+                };
+            };
+            401: components["responses"]["Problem"];
+        };
+    };
+    deskAddLead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeskLeadInput"];
+            };
+        };
+        responses: {
+            /** @description Added; the lead's page. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeskLeadPage"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            415: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    deskLeadsCSV: {
+        parameters: {
+            query?: {
+                stage?: components["parameters"]["LeadStage"];
+                /** @description Only this member's leads. The manager alone may choose; an agent always sees only their own. */
+                agent?: components["parameters"]["LeadAgent"];
+                /** @description Name, email, phone or interest containing this. */
+                q?: components["parameters"]["LeadQuery"];
+                /** @description Only leads from this source, such as Paid social or Referral. */
+                source?: components["parameters"]["LeadSource"];
+                /** @description Latest activity first when left out. */
+                sort?: components["parameters"]["LeadSort"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The CSV file. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            401: components["responses"]["Problem"];
+        };
+    };
+    deskLead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["LeadId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The lead. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeskLeadPage"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    deskLeadNote: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["LeadId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeskNoteInput"];
+            };
+        };
+        responses: {
+            200: components["responses"]["DeskLeadChanged"];
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            415: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    deskLeadStage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["LeadId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeskStageInput"];
+            };
+        };
+        responses: {
+            200: components["responses"]["DeskLeadChanged"];
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            415: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    deskLeadFollowUp: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["LeadId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeskFollowUpInput"];
+            };
+        };
+        responses: {
+            200: components["responses"]["DeskLeadChanged"];
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            415: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    deskLeadAssign: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["LeadId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeskAssignInput"];
+            };
+        };
+        responses: {
+            200: components["responses"]["DeskLeadChanged"];
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            415: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    deskLeadMove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["LeadId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeskMoveInput"];
+            };
+        };
+        responses: {
+            /** @description Moved. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            415: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    deskViewings: {
+        parameters: {
+            query?: {
+                /** @description The first day; Monday of this week when left out. */
+                from?: components["schemas"]["Date"];
+                /** @description The last day, up to 62 days on; six days after the first when left out. */
+                to?: components["schemas"]["Date"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The agenda. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeskAgenda"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    deskViewingOutcome: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ref: components["parameters"]["ViewingRef"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeskOutcomeInput"];
+            };
+        };
+        responses: {
+            /** @description Recorded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeskViewingResult"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            415: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    deskViewingHours: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeskHoursInput"];
+            };
+        };
+        responses: {
+            /** @description Saved; the booking calendar follows at once. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeskHoursResult"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            415: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    deskBlockDay: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeskBlockInput"];
+            };
+        };
+        responses: {
+            /** @description Closed; every closed day from today on. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeskBlocksResult"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            415: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    deskUnblockDay: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                day: components["schemas"]["Date"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Open again; every closed day from today on. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeskBlocksResult"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    deskReservations: {
+        parameters: {
+            query?: {
+                /** @description The tab; waiting when left out or unknown. */
+                group?: components["schemas"]["ReservationGroup"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The tab. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeskReservations"];
+                };
+            };
+            401: components["responses"]["Problem"];
+        };
+    };
+    deskConfirmReservation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ref: components["parameters"]["ReservationRef"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["DeskReservationDecided"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    deskDeclineReservation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ref: components["parameters"]["ReservationRef"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeskDeclineInput"];
+            };
+        };
+        responses: {
+            200: components["responses"]["DeskReservationDecided"];
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            415: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    deskRecordDeposit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ref: components["parameters"]["ReservationRef"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeskDepositInput"];
+            };
+        };
+        responses: {
+            200: components["responses"]["DeskReservationDecided"];
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            415: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    deskPricing: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The price lists. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeskPricing"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+        };
+    };
+    deskPublishPrices: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeskPricingInput"];
+            };
+        };
+        responses: {
+            /** @description In force; the price lists as they now stand. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeskPricing"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            415: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    deskPreviewPrices: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeskPricingInput"];
+            };
+        };
+        responses: {
+            /** @description The preview. Nothing is published. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeskPricePreview"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            415: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    deskActivity: {
+        parameters: {
+            query?: {
+                /** @description Whose activity; everything when left out. */
+                kind?: "staff" | "visitor" | "system";
+                /** @description How many of the newest lines to skip. */
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of the log. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeskActivity"];
+                };
+            };
+            401: components["responses"]["Problem"];
         };
     };
 }

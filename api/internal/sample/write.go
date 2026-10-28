@@ -14,7 +14,7 @@ import (
 // Version names the sample's story. Change it whenever the story changes, and
 // the next release rebuilds the shared sample as it starts instead of waiting
 // for the hourly rebuild.
-const Version = "2026-10-18 hourly"
+const Version = "2026-10-28 channels"
 
 func Build(ctx context.Context, path string, now time.Time) error {
 	story := Tell(now)
@@ -163,6 +163,23 @@ func (s *Story) write(ctx context.Context, tx *sql.Tx, passwordHash string) erro
 			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 			r.ID, r.Ref, r.Token, r.LeadID, r.UnitID, r.Plan, r.Price, r.Status, r.RequestedAt.Unix(), r.HoldExpiresAt.Unix(),
 			nullTime(r.DecidedAt), nullID(r.DecidedBy), nullText(r.OfferNumber), nullTime(r.DepositAt), deposit); err != nil {
+			return err
+		}
+	}
+
+	insertTouch, err := tx.PrepareContext(ctx, `INSERT INTO touches (lead_id, at, action, unit_id,
+		channel, source, medium, campaign, referrer, landing, arrived_at,
+		first_channel, first_source, first_medium, first_campaign, first_referrer, first_landing, first_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+	if err != nil {
+		return err
+	}
+	defer insertTouch.Close()
+	for _, t := range s.Touches {
+		f, l := t.First, t.Last
+		if _, err := insertTouch.ExecContext(ctx, nullID(t.LeadID), t.At.Unix(), t.Action, t.UnitID,
+			l.Channel, l.Source, l.Medium, l.Campaign, l.Referrer, l.Landing, l.At.Unix(),
+			f.Channel, f.Source, f.Medium, f.Campaign, f.Referrer, f.Landing, f.At.Unix()); err != nil {
 			return err
 		}
 	}

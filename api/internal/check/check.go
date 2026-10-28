@@ -88,8 +88,10 @@ type Checker struct {
 
 	client *http.Client
 	out    io.Writer
-	// viewing is the one the checker booked, for the steps after.
-	viewing string
+	// viewing is the one the checker booked, and reserved the reservation it
+	// requested, for the steps after.
+	viewing  string
+	reserved string
 }
 
 // New makes a checker with its own cookie jar, as a fresh visitor would have.
@@ -150,6 +152,8 @@ func (c *Checker) Run(ctx context.Context) error {
 		{"two visitors' pages rendered at once never see each other's", c.concurrentRenders},
 		{"a visitor cancels the viewing", c.cancelViewing},
 		{"a visitor requests a reservation, the home is held, and its page is theirs alone", c.reservation},
+		{"the manager signs in by link, reads the dashboard and the stacking plan, confirms the visitor's reservation and gets its letter of offer", c.deskManager},
+		{"an agent signs in by link and cannot open pricing", c.deskAgent},
 		{"a visitor deletes what they sent", c.deleteMine},
 	}
 	for _, step := range steps {

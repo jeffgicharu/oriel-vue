@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jeffgicharu/oriel-vue/api/internal/attribution"
 	"github.com/jeffgicharu/oriel-vue/api/internal/building"
 	"github.com/jeffgicharu/oriel-vue/api/internal/plans"
 	"github.com/jeffgicharu/oriel-vue/api/internal/pricing"
@@ -96,6 +97,8 @@ type Lead struct {
 	UpdatedAt      time.Time
 	StageChangedAt time.Time
 	wantType       string
+	web            bool              // the website brought them in
+	first, last    attribution.Touch // their first arrival on the website, and their latest
 }
 
 // LeadEvent is something that happened with a lead.
@@ -174,8 +177,10 @@ type Story struct {
 	Reservations []*Reservation
 	Activity     []Activity
 	Blocks       []Block
+	Touches      []Touch
 
 	rng       *rand.Rand
+	visits    *rand.Rand // for visits to the website alone, so they leave the rest of the story as it was
 	today     time.Time
 	slots     map[string]int
 	usedNames map[string]bool
@@ -196,6 +201,7 @@ func Tell(now time.Time) *Story {
 		Staff:     TeamMembers,
 		Units:     map[string]*Unit{},
 		rng:       rand.New(rand.NewPCG(20261017, 86)),
+		visits:    rand.New(rand.NewPCG(20261028, 31)),
 		today:     time.Date(local.Year(), local.Month(), local.Day(), 0, 0, 0, 0, nairobi),
 		slots:     map[string]int{},
 		usedNames: map[string]bool{},
@@ -223,6 +229,7 @@ func Tell(now time.Time) *Story {
 		s.holdHome(id)
 	}
 	s.addPipeline()
+	s.tapWhatsApp()
 
 	sort.SliceStable(s.Activity, func(i, j int) bool { return s.Activity[i].At.Before(s.Activity[j].At) })
 	sort.SliceStable(s.LeadEvents, func(i, j int) bool { return s.LeadEvents[i].At.Before(s.LeadEvents[j].At) })
@@ -401,7 +408,7 @@ func (s *Story) newLead(wantType string, created time.Time) *Lead {
 	// Every sample number sits in one made-up block, so none rings a real person.
 	phone := fmt.Sprintf("+254 700 555 %03d", s.rng.IntN(1000))
 
-	source := sources[0].name
+	source, web := sources[0].name, sources[0].web
 	total := 0
 	for _, src := range sources {
 		total += src.weight
@@ -409,7 +416,7 @@ func (s *Story) newLead(wantType string, created time.Time) *Lead {
 	r := s.rng.IntN(total)
 	for _, src := range sources {
 		if r < src.weight {
-			source = src.name
+			source, web = src.name, src.web
 			break
 		}
 		r -= src.weight
@@ -448,13 +455,15 @@ func (s *Story) newLead(wantType string, created time.Time) *Lead {
 		UpdatedAt:      created,
 		StageChangedAt: created,
 		wantType:       wantType,
+		web:            web,
 	}
 	s.Leads = append(s.Leads, l)
 	messages := enquiryMessages[wantType]
 	s.event(l, created, 0, "enquiry", messages[s.rng.IntN(len(messages))], "")
 	s.event(l, created.Add(4*time.Minute), 1, "assigned", "Assigned to "+s.staffName(agent), "")
-	if source == "Website" {
+	if web {
 		s.Activity = append(s.Activity, Activity{At: created, Actor: "visitor", Action: "took an enquiry from", Subject: name, Detail: interest, Link: fmt.Sprintf("/desk/leads/%d", l.ID)})
+		s.webEnquiry(l)
 	}
 	return l
 }
@@ -533,7 +542,19 @@ func (s *Story) book(l *Lead, slot, bookedAt time.Time, unit, status string) *Vi
 	}
 	s.Viewings = append(s.Viewings, v)
 	when := slot.In(nairobi).Format("Mon 2 Jan, 15:04")
-	s.event(l, bookedAt, l.AgentID, "viewing_booked", "Viewing booked for "+when, unit)
+	// Half of those the website brought in book online; the agent books
+	// everyone else's.
+	if l.web && s.visits.IntN(2) == 0 {
+		s.event(l, bookedAt, 0, "viewing_booked", "Viewing booked for "+when, unit)
+		s.touch(l, bookedAt, "viewing", unit, "/viewings/new")
+		detail := when
+		if unit != "" {
+			detail += " · home " + unit
+		}
+		s.Activity = append(s.Activity, Activity{At: bookedAt, Actor: "visitor", Action: "took a viewing booking from", Subject: l.Name, Detail: detail, Link: fmt.Sprintf("/desk/leads/%d", l.ID)})
+	} else {
+		s.event(l, bookedAt, l.AgentID, "viewing_booked", "Viewing booked for "+when, unit)
+	}
 	switch status {
 	case "attended":
 		if len(s.notes) == 0 {
@@ -579,6 +600,7 @@ func (s *Story) request(l *Lead, unit string, at time.Time, fromWebsite bool) *R
 	action := "requested a reservation for"
 	if fromWebsite {
 		action = "took a reservation request for"
+		s.touch(l, at, "reservation", unit, "/residences/"+unit)
 	}
 	s.Activity = append(s.Activity, Activity{At: at, StaffID: by, Actor: actor, Action: action, Subject: unit, Detail: l.Name + " · " + plan.Name, Link: "/desk/reservations"})
 	return r

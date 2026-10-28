@@ -3,6 +3,7 @@ package api
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log/slog"
 	"mime"
@@ -20,7 +21,10 @@ import (
 	"github.com/santhosh-tekuri/jsonschema/v6"
 	"go.yaml.in/yaml/v3"
 
+	"github.com/jeffgicharu/oriel-vue/api/internal/attribution"
 	"github.com/jeffgicharu/oriel-vue/api/internal/config"
+	"github.com/jeffgicharu/oriel-vue/api/internal/sample"
+	"github.com/jeffgicharu/oriel-vue/api/internal/store"
 )
 
 // contract is api/openapi.yaml, loaded for checking answers against.
@@ -357,8 +361,11 @@ func TestEveryAnswerKeepsToTheContract(t *testing.T) {
 	}
 	k.call("GET", "/api/viewings/"+v.Ref, nil)
 
+	callTheDesk(t, srv, c)
+
 	// Every operation in the contract was called at least once, except the
-	// stream, which the next test reads.
+	// stream, which the next test reads. The desk's stream is called signed
+	// out; TestTheDeskStreamIsForTheTeam reads it signed in.
 	var missed []string
 	for _, op := range c.ops {
 		key := op.method + " " + op.template
@@ -451,5 +458,512 @@ func TestTheRealAddressIsBelievedOnlyFromThisMachine(t *testing.T) {
 	r.RemoteAddr = "203.0.113.9:5555"
 	if got := clientIP(r); got != "203.0.113.9" {
 		t.Errorf("from elsewhere the header was believed: %q", got)
+	}
+}
+
+// deskKey is the test app's desk key, which signs the one-click links.
+var deskKey = []byte("0123456789abcdef")
+
+// deskBrowser is a browser of its own that does not follow redirects, so the
+// one-click link's answer is checked as it is sent.
+func deskBrowser() *http.Client {
+	jar, _ := cookiejar.New(nil)
+	return &http.Client{
+		Jar:           jar,
+		Timeout:       10 * time.Second,
+		CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
+	}
+}
+
+type deskCall struct {
+	method, path string
+	body         any
+}
+
+// callTheDesk calls every operation of the sales desk: signed out, signed in
+// by password, and by link as the manager and as an agent, each in a browser
+// and a copy of their own.
+func callTheDesk(t *testing.T, srv *httptest.Server, c *contract) {
+	answers := func(res *http.Response, body []byte, status int) bool {
+		t.Helper()
+		if res.StatusCode != status {
+			t.Errorf("%s %s answered %d, want %d: %.400s", res.Request.Method, res.Request.URL.RequestURI(), res.StatusCode, status, body)
+			return false
+		}
+		return true
+	}
+	decode := func(body []byte, v any) {
+		t.Helper()
+		if err := json.Unmarshal(body, v); err != nil {
+			t.Fatalf("%v: %.300s", err, body)
+		}
+	}
+	day := func(offset int) string {
+		return time.Now().In(store.Nairobi()).AddDate(0, 0, offset).Format(time.DateOnly)
+	}
+	someList := map[string]any{"base": map[string]int64{"A": 9_800_000, "B": 15_400_000, "C": 21_600_000, "D": 25_900_000, "P": 52_000_000}, "floorBP": 100, "riverBP": 400}
+	hours := map[string]any{"days": []int{0, 2, 3, 4, 5, 6}, "times": []string{"10:00", "11:30", "14:00", "15:30"}, "capacity": 2}
+
+	// Signed out, everything but signing in is refused.
+	nobody := caller{t, srv, deskBrowser(), c}
+	for _, call := range []deskCall{
+		{"GET", "/api/desk/session", nil},
+		{"GET", "/api/desk/events", nil},
+		{"GET", "/api/desk/team", nil},
+		{"GET", "/api/desk/dashboard", nil},
+		{"GET", "/api/desk/stack", nil},
+		{"GET", "/api/desk/homes/0704", nil},
+		{"POST", "/api/desk/homes/0704/status", map[string]any{"status": "withheld", "reason": "Show flat"}},
+		{"POST", "/api/desk/homes/0704/price", map[string]any{"price": 0, "reason": "Back on the list"}},
+		{"GET", "/api/desk/leads", nil},
+		{"GET", "/api/desk/leads.csv", nil},
+		{"POST", "/api/desk/leads", map[string]any{"name": "Amina Wekesa"}},
+		{"GET", "/api/desk/leads/1", nil},
+		{"POST", "/api/desk/leads/1/notes", map[string]any{"body": "Called"}},
+		{"POST", "/api/desk/leads/1/stage", map[string]any{"stage": "contacted"}},
+		{"POST", "/api/desk/leads/1/follow-up", map[string]any{"day": ""}},
+		{"POST", "/api/desk/leads/1/assign", map[string]any{"agent": 2}},
+		{"POST", "/api/desk/leads/1/move", map[string]any{"stage": "contacted"}},
+		{"GET", "/api/desk/viewings", nil},
+		{"POST", "/api/desk/viewings/V-NONE0/outcome", map[string]any{"outcome": "attended"}},
+		{"PUT", "/api/desk/viewings/hours", hours},
+		{"POST", "/api/desk/viewings/blocks", map[string]any{"day": day(9), "reason": "Staff training"}},
+		{"DELETE", "/api/desk/viewings/blocks/" + day(9), nil},
+		{"GET", "/api/desk/reservations", nil},
+		{"POST", "/api/desk/reservations/R-NONE0/confirm", nil},
+		{"POST", "/api/desk/reservations/R-NONE0/decline", map[string]any{"reason": "The buyer withdrew."}},
+		{"POST", "/api/desk/reservations/R-NONE0/deposit", map[string]any{"amount": 1_000_000}},
+		{"GET", "/api/desk/pricing", nil},
+		{"POST", "/api/desk/pricing/preview", map[string]any{"list": someList}},
+		{"POST", "/api/desk/pricing", map[string]any{"list": someList}},
+		{"GET", "/api/desk/activity", nil},
+	} {
+		res, body := nobody.call(call.method, call.path, call.body)
+		answers(res, body, http.StatusUnauthorized)
+	}
+	res, body := nobody.call("DELETE", "/api/desk/session", nil)
+	answers(res, body, http.StatusNoContent)
+	res, body = nobody.call("POST", "/api/desk/session", map[string]any{"username": "grace.wambui", "password": "not the password"})
+	answers(res, body, http.StatusUnauthorized)
+	res, body = nobody.call("POST", "/api/desk/session", map[string]any{"username": "grace.wambui", "pin": "1234"})
+	answers(res, body, http.StatusBadRequest)
+	res, body = nobody.call("GET", "/api/desk/enter/manager/not-the-signature", nil)
+	answers(res, body, http.StatusNotFound)
+	res, body = nobody.call("GET", "/api/desk/enter/owner/"+EnterSignature(deskKey, "owner"), nil)
+	answers(res, body, http.StatusNotFound)
+
+	// Signed in with a password, on the browser's own copy.
+	byPassword := caller{t, srv, deskBrowser(), c}
+	res, body = byPassword.call("POST", "/api/desk/session", map[string]any{"username": sample.TeamMembers[0].Username, "password": sample.Password})
+	if answers(res, body, http.StatusOK) {
+		var s DeskSession
+		decode(body, &s)
+		if !s.Manager || s.Staff.Name != "Grace Wambui" || s.Waiting < 1 {
+			t.Errorf("signing in answered %s", body)
+		}
+	}
+	res, body = byPassword.call("GET", "/api/desk/session", nil)
+	answers(res, body, http.StatusOK)
+	res, body = byPassword.call("DELETE", "/api/desk/session", nil)
+	answers(res, body, http.StatusNoContent)
+	res, body = byPassword.call("GET", "/api/desk/session", nil)
+	answers(res, body, http.StatusUnauthorized)
+
+	// The manager, by the one-click link.
+	manager := caller{t, srv, deskBrowser(), c}
+	res, body = manager.call("GET", "/api/desk/enter/manager/"+EnterSignature(deskKey, "manager"), nil)
+	if answers(res, body, http.StatusSeeOther) && res.Header.Get("Location") != "/desk" {
+		t.Errorf("the link goes on to %q", res.Header.Get("Location"))
+	}
+	res, body = manager.call("GET", "/api/desk/session", nil)
+	if answers(res, body, http.StatusOK) && !strings.Contains(string(body), `"manager":true`) {
+		t.Errorf("the manager's link signed in %s", body)
+	}
+	_, body = manager.call("GET", "/api/desk/team", nil)
+	var team DeskTeam
+	decode(body, &team)
+	var agentID int64
+	agentName := ""
+	for _, m := range team.Team {
+		if m.Role == "agent" {
+			agentID, agentName = m.ID, m.Name
+			break
+		}
+	}
+	if agentID == 0 {
+		t.Fatalf("the team has no agent: %s", body)
+	}
+
+	res, body = manager.call("GET", "/api/desk/dashboard", nil)
+	if answers(res, body, http.StatusOK) {
+		var dash DeskDashboard
+		decode(body, &dash)
+		web, taps := 0, 0
+		for _, ch := range dash.Channels {
+			web += ch.Leads
+		}
+		for _, ch := range dash.WhatsApp {
+			taps += ch.Taps
+		}
+		if dash.Total != 86 || len(dash.Channels) != len(attribution.Channels) || web == 0 || taps == 0 || dash.WaitingTotal == 0 || len(dash.Months) != 8 {
+			t.Errorf("the dashboard shows %d homes, %d web leads, %d taps, %d waiting: %.400s", dash.Total, web, taps, dash.WaitingTotal, body)
+		}
+	}
+
+	// The stacking plan and a home's drawer.
+	_, body = manager.call("GET", "/api/desk/stack", nil)
+	var stack DeskStack
+	decode(body, &stack)
+	homes := 0
+	var free DeskHome
+	for _, f := range stack.Floors {
+		for _, h := range f.Homes {
+			homes++
+			if free.ID == "" && h.Status == store.Available {
+				free = h
+			}
+		}
+	}
+	if homes != 86 || free.ID == "" {
+		t.Fatalf("the stacking plan has %d homes and none for sale: %.300s", homes, body)
+	}
+	home := "/api/desk/homes/" + free.ID
+	res, body = manager.call("GET", home, nil)
+	answers(res, body, http.StatusOK)
+	res, body = manager.call("GET", "/api/desk/homes/9999", nil)
+	answers(res, body, http.StatusNotFound)
+	res, body = manager.call("POST", home+"/status", map[string]any{"status": "withheld", "reason": " "})
+	answers(res, body, http.StatusUnprocessableEntity)
+	res, body = manager.call("POST", home+"/status", map[string]any{"status": "sold", "reason": "Sold by hand"})
+	answers(res, body, http.StatusUnprocessableEntity)
+	res, body = manager.call("POST", home+"/status", map[string]any{"state": "withheld"})
+	answers(res, body, http.StatusBadRequest)
+	res, body = manager.call("POST", home+"/status", map[string]any{"status": "withheld", "reason": "Kept for a show flat"})
+	if answers(res, body, http.StatusOK) {
+		var d DeskHomeDetail
+		decode(body, &d)
+		if d.Home.Status != store.Withheld || d.Notice != "Home "+free.ID+" is withheld from sale." || len(d.History) == 0 {
+			t.Errorf("withholding answered %s", body)
+		}
+	}
+	res, body = manager.call("POST", home+"/status", map[string]any{"status": "available", "reason": "The show flat moved"})
+	answers(res, body, http.StatusOK)
+	res, body = manager.call("POST", "/api/desk/homes/9999/status", map[string]any{"status": "withheld", "reason": "Show flat"})
+	answers(res, body, http.StatusNotFound)
+	res, body = manager.call("POST", home+"/price", map[string]any{"price": free.ListPrice + 5_000, "reason": "Corner premium"})
+	answers(res, body, http.StatusUnprocessableEntity)
+	res, body = manager.call("POST", home+"/price", map[string]any{"price": free.ListPrice + 250_000, "reason": "Corner premium"})
+	if answers(res, body, http.StatusOK) && !strings.Contains(string(body), `"overridden":true`) {
+		t.Errorf("a price of its own answered %s", body)
+	}
+	res, body = manager.call("POST", home+"/price", map[string]any{"price": 0, "reason": "Back on the list"})
+	answers(res, body, http.StatusOK)
+
+	// Leads: the table, the board, the spreadsheet.
+	res, body = manager.call("GET", "/api/desk/leads", nil)
+	var leads DeskLeads
+	decode(body, &leads)
+	if !answers(res, body, http.StatusOK) || len(leads.Leads) == 0 || leads.Total < 200 || len(leads.Sources) == 0 {
+		t.Fatalf("the leads table has %d of %d", len(leads.Leads), leads.Total)
+	}
+	var otherLead DeskLead
+	for _, l := range leads.Leads {
+		if l.AgentID != agentID && l.AgentID != 0 {
+			otherLead = l
+			break
+		}
+	}
+	res, body = manager.call("GET", "/api/desk/leads?view=board", nil)
+	if answers(res, body, http.StatusOK) {
+		var board DeskLeads
+		decode(body, &board)
+		if len(board.Columns) != len(store.Stages) || len(board.Leads) != 0 {
+			t.Errorf("the board has %d columns", len(board.Columns))
+		}
+	}
+	res, body = manager.call("GET", fmt.Sprintf("/api/desk/leads?stage=viewing&agent=%d&q=a&source=Search&sort=follow", agentID), nil)
+	answers(res, body, http.StatusOK)
+	res, body = manager.call("GET", "/api/desk/leads?stage=nonsense&sort=nonsense", nil)
+	answers(res, body, http.StatusOK)
+	res, body = manager.call("GET", "/api/desk/leads.csv?source=Search", nil)
+	if answers(res, body, http.StatusOK) && !strings.HasPrefix(string(body), "Name,Email,Phone,Stage,Agent,Source,Channel,Campaign,") {
+		t.Errorf("the spreadsheet starts %.120q", body)
+	}
+	_, body = manager.call("GET", "/api/desk/leads?source=Search", nil)
+	var fromSearch DeskLeads
+	decode(body, &fromSearch)
+	if len(fromSearch.Leads) == 0 {
+		t.Errorf("no lead came from search")
+	} else {
+		res, body = manager.call("GET", fmt.Sprintf("/api/desk/leads/%d", fromSearch.Leads[0].ID), nil)
+		var page DeskLeadPage
+		decode(body, &page)
+		if n := len(page.Touches); !answers(res, body, http.StatusOK) || n == 0 || page.Touches[n-1].First.Channel != attribution.Search {
+			t.Errorf("a lead from search has its visits as %.400s", body)
+		}
+	}
+
+	// A lead added by hand, and changed.
+	res, body = manager.call("POST", "/api/desk/leads", map[string]any{"name": "", "email": "nope", "phone": "1"})
+	answers(res, body, http.StatusUnprocessableEntity)
+	walkIn := map[string]any{"name": "Amina Wekesa", "email": "amina.walk-in@example.com", "phone": "0722 111 222", "source": "Walk-in", "interest": "2 bed, high floor", "buying": "home", "agent": agentID, "note": "Walked in after seeing the hoarding."}
+	res, body = manager.call("POST", "/api/desk/leads", walkIn)
+	var added DeskLeadPage
+	decode(body, &added)
+	if !answers(res, body, http.StatusCreated) || added.Lead.AgentID != agentID || added.Notice != "Amina Wekesa added." {
+		t.Fatalf("adding a lead answered %s", body)
+	}
+	res, body = manager.call("POST", "/api/desk/leads", walkIn)
+	answers(res, body, http.StatusConflict)
+	res, body = manager.call("POST", "/api/desk/leads", with(walkIn, "email", "amina.other@example.com", "agent", 999))
+	answers(res, body, http.StatusUnprocessableEntity)
+
+	lead := fmt.Sprintf("/api/desk/leads/%d", added.Lead.ID)
+	for _, step := range []struct {
+		path   string
+		body   any
+		status int
+	}{
+		{lead + "/notes", map[string]any{"body": "  "}, http.StatusUnprocessableEntity},
+		{lead + "/notes", map[string]any{"text": "Called"}, http.StatusBadRequest},
+		{lead + "/notes", map[string]any{"body": "Called; coming on Saturday with her sister."}, http.StatusOK},
+		{"/api/desk/leads/999999/notes", map[string]any{"body": "Called"}, http.StatusNotFound},
+		{lead + "/stage", map[string]any{"stage": "lost"}, http.StatusUnprocessableEntity},
+		{lead + "/stage", map[string]any{"stage": "contacted"}, http.StatusOK},
+		{lead + "/follow-up", map[string]any{"day": "soon"}, http.StatusUnprocessableEntity},
+		{lead + "/follow-up", map[string]any{"day": day(3)}, http.StatusOK},
+		{lead + "/follow-up", map[string]any{"day": ""}, http.StatusOK},
+		{lead + "/assign", map[string]any{"agent": 999}, http.StatusUnprocessableEntity},
+		{lead + "/assign", map[string]any{"agent": agentID}, http.StatusOK},
+		{lead + "/move", map[string]any{"stage": "viewing", "after": 0, "before": 0}, http.StatusNoContent},
+		{lead + "/move", map[string]any{"stage": "lost"}, http.StatusUnprocessableEntity},
+		{"/api/desk/leads/999999/move", map[string]any{"stage": "contacted"}, http.StatusNotFound},
+	} {
+		res, body = manager.call("POST", step.path, step.body)
+		answers(res, body, step.status)
+	}
+	res, body = manager.call("GET", lead, nil)
+	if answers(res, body, http.StatusOK) && !strings.Contains(string(body), `"stage":"viewing"`) {
+		t.Errorf("the lead after its changes is %.300s", body)
+	}
+	res, body = manager.call("GET", "/api/desk/leads/999999", nil)
+	answers(res, body, http.StatusNotFound)
+	res, body = manager.call("GET", "/api/desk/leads/abc", nil)
+	answers(res, body, http.StatusNotFound)
+
+	// Viewings: the agenda, an outcome, the hours and a closed day.
+	res, body = manager.call("GET", "/api/desk/viewings", nil)
+	if answers(res, body, http.StatusOK) && strings.Count(string(body), `"date":`) != 7 {
+		t.Errorf("the week's agenda is %.300s", body)
+	}
+	res, body = manager.call("GET", "/api/desk/viewings?from=2026-02-30", nil)
+	answers(res, body, http.StatusUnprocessableEntity)
+	res, body = manager.call("GET", "/api/desk/viewings?from="+day(0)+"&to="+day(-1), nil)
+	answers(res, body, http.StatusUnprocessableEntity)
+	_, body = manager.call("GET", "/api/desk/viewings?from="+day(-20)+"&to="+day(14), nil)
+	var agenda DeskAgenda
+	decode(body, &agenda)
+	var seen, ahead, othersSeen DeskViewing
+	for _, v := range agenda.Viewings {
+		if v.Status == "attended" && seen.Ref == "" {
+			seen = v
+		}
+		if v.Status == "attended" && v.Agent != agentName && othersSeen.Ref == "" {
+			othersSeen = v
+		}
+		if v.Status == "booked" && ahead.Ref == "" {
+			ahead = v
+		}
+	}
+	if seen.Ref == "" || ahead.Ref == "" || othersSeen.Ref == "" {
+		t.Fatalf("the agenda has no past or coming viewing: %.300s", body)
+	}
+	res, body = manager.call("POST", "/api/desk/viewings/"+seen.Ref+"/outcome", map[string]any{"outcome": "attended", "notes": "Came with their family."})
+	if answers(res, body, http.StatusOK) && !strings.Contains(string(body), `"notice":"Marked as came."`) {
+		t.Errorf("an outcome answered %s", body)
+	}
+	res, body = manager.call("POST", "/api/desk/viewings/"+ahead.Ref+"/outcome", map[string]any{"outcome": "no_show"})
+	answers(res, body, http.StatusUnprocessableEntity)
+	res, body = manager.call("POST", "/api/desk/viewings/"+seen.Ref+"/outcome", map[string]any{"outcome": "maybe"})
+	answers(res, body, http.StatusUnprocessableEntity)
+	res, body = manager.call("POST", "/api/desk/viewings/V-NONE0/outcome", map[string]any{"outcome": "attended"})
+	answers(res, body, http.StatusNotFound)
+	res, body = manager.call("PUT", "/api/desk/viewings/hours", map[string]any{"days": []int{}, "times": []string{"25:00"}, "capacity": 9})
+	answers(res, body, http.StatusUnprocessableEntity)
+	res, body = manager.call("PUT", "/api/desk/viewings/hours", hours)
+	answers(res, body, http.StatusOK)
+	res, body = manager.call("POST", "/api/desk/viewings/blocks", map[string]any{"day": "someday", "reason": ""})
+	answers(res, body, http.StatusUnprocessableEntity)
+	res, body = manager.call("POST", "/api/desk/viewings/blocks", map[string]any{"day": day(-3), "reason": "Staff training"})
+	answers(res, body, http.StatusUnprocessableEntity)
+	res, body = manager.call("POST", "/api/desk/viewings/blocks", map[string]any{"day": day(20), "reason": "Staff training"})
+	if answers(res, body, http.StatusOK) && !strings.Contains(string(body), `"reason":"Staff training"`) {
+		t.Errorf("closing a day answered %s", body)
+	}
+	res, body = manager.call("DELETE", "/api/desk/viewings/blocks/"+day(20), nil)
+	answers(res, body, http.StatusOK)
+	res, body = manager.call("DELETE", "/api/desk/viewings/blocks/someday", nil)
+	answers(res, body, http.StatusNotFound)
+
+	// Reservations: confirm one, take its deposit, decline another.
+	_, body = manager.call("GET", "/api/desk/reservations", nil)
+	var waiting DeskReservations
+	decode(body, &waiting)
+	if len(waiting.Reservations) < 2 {
+		t.Fatalf("too few reservations are waiting: %.300s", body)
+	}
+	res, body = manager.call("GET", "/api/desk/reservations?group=closed", nil)
+	answers(res, body, http.StatusOK)
+	first, second := waiting.Reservations[0], waiting.Reservations[1]
+	res, body = manager.call("POST", "/api/desk/reservations/"+first.Ref+"/confirm", nil)
+	if answers(res, body, http.StatusOK) {
+		var d DeskReservationResult
+		decode(body, &d)
+		if !strings.HasPrefix(d.Reservation.OfferNumber, "OR-") || d.Home.Status != store.Reserved || d.Reservation.Offer == "" {
+			t.Errorf("confirming answered %s", body)
+		}
+	}
+	res, body = manager.call("POST", "/api/desk/reservations/"+first.Ref+"/confirm", nil)
+	answers(res, body, http.StatusUnprocessableEntity)
+	res, body = manager.call("POST", "/api/desk/reservations/R-NONE0/confirm", nil)
+	answers(res, body, http.StatusNotFound)
+	res, body = manager.call("GET", "/api/reservations/"+first.Ref+"/offer.pdf", nil)
+	if answers(res, body, http.StatusOK) && !bytes.HasPrefix(body, []byte("%PDF-")) {
+		t.Errorf("the letter of offer starts %.20q", body)
+	}
+	res, body = manager.call("POST", "/api/desk/reservations/"+first.Ref+"/deposit", map[string]any{"amount": 0})
+	answers(res, body, http.StatusUnprocessableEntity)
+	res, body = manager.call("POST", "/api/desk/reservations/"+first.Ref+"/deposit", map[string]any{"amount": first.SuggestedDeposit})
+	if answers(res, body, http.StatusOK) && !strings.Contains(string(body), `"status":"completed"`) {
+		t.Errorf("the deposit answered %s", body)
+	}
+	res, body = manager.call("POST", "/api/desk/reservations/"+second.Ref+"/decline", map[string]any{"reason": "no"})
+	answers(res, body, http.StatusUnprocessableEntity)
+	res, body = manager.call("POST", "/api/desk/reservations/"+second.Ref+"/decline", map[string]any{"reason": "The buyer withdrew."})
+	answers(res, body, http.StatusOK)
+	res, body = manager.call("POST", "/api/desk/reservations/"+second.Ref+"/deposit", map[string]any{"amount": 1_000_000})
+	answers(res, body, http.StatusUnprocessableEntity)
+
+	// Pricing: preview a list, then publish it.
+	_, body = manager.call("GET", "/api/desk/pricing", nil)
+	var prices DeskPricing
+	decode(body, &prices)
+	list := map[string]any{"base": prices.Current.Base, "floorBP": prices.Current.FloorBP + 20, "riverBP": prices.Current.RiverBP}
+	bad := map[string]any{"base": map[string]int64{"A": 5}, "floorBP": -1, "riverBP": 400}
+	res, body = manager.call("POST", "/api/desk/pricing/preview", map[string]any{"list": list, "note": "Floor premium up"})
+	if answers(res, body, http.StatusOK) {
+		var p DeskPricePreview
+		decode(body, &p)
+		if p.Changed == 0 || p.NewTotal <= p.OldTotal {
+			t.Errorf("the preview reprices %d homes", p.Changed)
+		}
+	}
+	res, body = manager.call("POST", "/api/desk/pricing/preview", map[string]any{"list": bad})
+	answers(res, body, http.StatusUnprocessableEntity)
+	res, body = manager.call("POST", "/api/desk/pricing", map[string]any{"list": bad})
+	answers(res, body, http.StatusUnprocessableEntity)
+	res, body = manager.call("POST", "/api/desk/pricing", map[string]any{"list": list, "note": "Floor premium up"})
+	if answers(res, body, http.StatusCreated) {
+		var after DeskPricing
+		decode(body, &after)
+		if after.Current.ID != prices.Current.ID+1 || after.Notice == "" {
+			t.Errorf("publishing answered %.300s", body)
+		}
+	}
+
+	// The activity log, a page at a time.
+	res, body = manager.call("GET", "/api/desk/activity", nil)
+	if answers(res, body, http.StatusOK) && !strings.Contains(string(body), `"more":true`) {
+		t.Errorf("the activity log has one page: %.200s", body)
+	}
+	res, body = manager.call("GET", "/api/desk/activity?kind=staff&offset=60", nil)
+	answers(res, body, http.StatusOK)
+
+	// An agent, by the one-click link: their own leads, and nothing of the
+	// manager's.
+	agent := caller{t, srv, deskBrowser(), c}
+	res, body = agent.call("GET", "/api/desk/enter/agent/"+EnterSignature(deskKey, "agent"), nil)
+	answers(res, body, http.StatusSeeOther)
+	res, body = agent.call("GET", "/api/desk/session", nil)
+	if answers(res, body, http.StatusOK) && !strings.Contains(string(body), `"manager":false`) {
+		t.Errorf("the agent's link signed in %s", body)
+	}
+	res, body = agent.call("GET", "/api/desk/dashboard", nil)
+	answers(res, body, http.StatusOK)
+	_, body = agent.call("GET", fmt.Sprintf("/api/desk/leads?agent=%d", otherLead.AgentID), nil)
+	var own DeskLeads
+	decode(body, &own)
+	for _, l := range own.Leads {
+		if l.AgentID != agentID {
+			t.Errorf("an agent sees lead %d of agent %d", l.ID, l.AgentID)
+			break
+		}
+	}
+	if len(own.Leads) > 0 {
+		res, body = agent.call("GET", fmt.Sprintf("/api/desk/leads/%d", own.Leads[0].ID), nil)
+		answers(res, body, http.StatusOK)
+	}
+	other := fmt.Sprintf("/api/desk/leads/%d", otherLead.ID)
+	res, body = agent.call("GET", other, nil)
+	answers(res, body, http.StatusForbidden)
+	res, body = agent.call("POST", other+"/notes", map[string]any{"body": "Called"})
+	answers(res, body, http.StatusForbidden)
+	res, body = agent.call("POST", other+"/move", map[string]any{"stage": "contacted"})
+	answers(res, body, http.StatusForbidden)
+	res, body = agent.call("POST", "/api/desk/viewings/"+othersSeen.Ref+"/outcome", map[string]any{"outcome": "attended"})
+	answers(res, body, http.StatusForbidden)
+	for _, call := range []deskCall{
+		{"POST", "/api/desk/homes/0704/status", map[string]any{"status": "withheld", "reason": "Show flat"}},
+		{"POST", "/api/desk/homes/0704/price", map[string]any{"price": 0, "reason": "Back on the list"}},
+		{"POST", other + "/assign", map[string]any{"agent": agentID}},
+		{"PUT", "/api/desk/viewings/hours", hours},
+		{"POST", "/api/desk/viewings/blocks", map[string]any{"day": day(9), "reason": "Staff training"}},
+		{"DELETE", "/api/desk/viewings/blocks/" + day(9), nil},
+		{"POST", "/api/desk/reservations/" + first.Ref + "/confirm", nil},
+		{"POST", "/api/desk/reservations/" + first.Ref + "/decline", map[string]any{"reason": "The buyer withdrew."}},
+		{"POST", "/api/desk/reservations/" + first.Ref + "/deposit", map[string]any{"amount": 1_000_000}},
+		{"GET", "/api/desk/pricing", nil},
+		{"POST", "/api/desk/pricing/preview", map[string]any{"list": list}},
+		{"POST", "/api/desk/pricing", map[string]any{"list": list}},
+	} {
+		res, body := agent.call(call.method, call.path, call.body)
+		if answers(res, body, http.StatusForbidden) && !strings.Contains(string(body), "Only the sales manager can do that.") {
+			t.Errorf("%s %s refused an agent with %s", call.method, call.path, body)
+		}
+	}
+
+	res, body = manager.call("DELETE", "/api/desk/session", nil)
+	answers(res, body, http.StatusNoContent)
+	res, body = manager.call("GET", "/api/desk/dashboard", nil)
+	answers(res, body, http.StatusUnauthorized)
+}
+
+// TestTheDeskStreamIsForTheTeam opens the desk's live updates signed in, and
+// is turned away signed out.
+func TestTheDeskStreamIsForTheTeam(t *testing.T) {
+	srv, client := testApp(t)
+	res, err := client.Get(srv.URL + "/api/desk/events")
+	if err != nil {
+		t.Fatal(err)
+	}
+	res.Body.Close()
+	if res.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("signed out, the desk's stream answered %d", res.StatusCode)
+	}
+	desk := deskBrowser()
+	res, err = desk.Get(srv.URL + "/api/desk/enter/manager/" + EnterSignature(deskKey, "manager"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	res.Body.Close()
+	res, err = desk.Get(srv.URL + "/api/desk/events")
+	if err != nil {
+		t.Fatal(err)
+	}
+	buf := make([]byte, 16)
+	n, _ := io.ReadAtLeast(res.Body, buf, 6)
+	res.Body.Close()
+	if res.StatusCode != http.StatusOK || !strings.HasPrefix(string(buf[:n]), "retry:") {
+		t.Fatalf("signed in, the desk's stream answered %d and opens with %q", res.StatusCode, buf[:n])
 	}
 }

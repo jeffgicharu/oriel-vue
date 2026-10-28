@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jeffgicharu/oriel-vue/api/internal/attribution"
 	"github.com/jeffgicharu/oriel-vue/api/internal/building"
 	"github.com/jeffgicharu/oriel-vue/api/internal/store"
 	"github.com/jeffgicharu/oriel-vue/api/internal/viewings"
@@ -151,6 +152,62 @@ func checkStory(s *Story) error {
 		if n > s.Viewing.Capacity {
 			return fmt.Errorf("%d parties in the %s slot", n, key)
 		}
+	}
+
+	// Visits to the website come before what they led to, and nothing
+	// happens on the website after now.
+	earliest := map[int64]Touch{}
+	recent := 0
+	for _, t := range s.Touches {
+		if err := late("touch "+t.Action, t.At); err != nil {
+			return err
+		}
+		if t.Last.At.After(t.At) || t.First.At.After(t.Last.At) {
+			return fmt.Errorf("a %s at %s arrived at %s, first at %s", t.Action, t.At, t.Last.At, t.First.At)
+		}
+		if t.At.Sub(t.First.At) > firstTouchKept {
+			return fmt.Errorf("a %s at %s kept a first arrival from %s", t.Action, t.At, t.First.At)
+		}
+		for _, a := range []attribution.Touch{t.First, t.Last} {
+			if a.Channel != attribution.Classify(a) {
+				return fmt.Errorf("an arrival filed as %s is %s: %+v", a.Channel, attribution.Classify(a), a)
+			}
+		}
+		if (t.LeadID == 0) != (t.Action == "whatsapp") {
+			return fmt.Errorf("a %s touch has lead %d", t.Action, t.LeadID)
+		}
+		if t.LeadID == 0 {
+			if t.At.After(s.Now.AddDate(0, 0, -30)) {
+				recent++
+			}
+			continue
+		}
+		if t.At.Before(created[t.LeadID]) {
+			return fmt.Errorf("lead %d sent a %s before it enquired", t.LeadID, t.Action)
+		}
+		if e, ok := earliest[t.LeadID]; !ok || t.At.Before(e.At) {
+			earliest[t.LeadID] = t
+		}
+	}
+	if recent < 5 {
+		return fmt.Errorf("only %d taps on WhatsApp in the last 30 days", recent)
+	}
+	// A lead the website brought in enquired on the website through the
+	// channel it is filed under; a lead from elsewhere was not made there.
+	web := 0
+	for _, l := range s.Leads {
+		t, ok := earliest[l.ID]
+		if l.web {
+			web++
+			if !ok || t.Action != "enquiry" || !t.At.Equal(l.CreatedAt) || t.First.Channel != l.Source {
+				return fmt.Errorf("lead %d from %s has no enquiry from the website through it: %+v", l.ID, l.Source, t)
+			}
+		} else if ok && !t.At.After(l.CreatedAt) {
+			return fmt.Errorf("lead %d from %s was made on the website", l.ID, l.Source)
+		}
+	}
+	if web < 40 {
+		return fmt.Errorf("only %d leads came from the website", web)
 	}
 
 	// A lead's stage matches its history.

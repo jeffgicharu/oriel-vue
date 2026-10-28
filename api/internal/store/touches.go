@@ -46,3 +46,47 @@ func (db *DB) RecordWhatsApp(ctx context.Context, unitID string, a attribution.A
 		return Activity(ctx, tx, at, 0, "visitor", "opened WhatsApp about", subject, "from "+a.Last.Channel, link)
 	})
 }
+
+// Touch is something a visitor sent from the website, with where they came
+// from: Last is the arrival that led to it, First their first arrival.
+type Touch struct {
+	ID     int64
+	LeadID int64
+	At     time.Time
+	Action string
+	UnitID string
+	attribution.Attribution
+}
+
+const touchColumns = `id, COALESCE(lead_id, 0), at, action, unit_id,
+	channel, source, medium, campaign, referrer, landing, arrived_at,
+	first_channel, first_source, first_medium, first_campaign, first_referrer, first_landing, first_at`
+
+func scanTouch(row interface{ Scan(...any) error }) (Touch, error) {
+	var t Touch
+	var at, arrived, first int64
+	l, f := &t.Last, &t.First
+	err := row.Scan(&t.ID, &t.LeadID, &at, &t.Action, &t.UnitID,
+		&l.Channel, &l.Source, &l.Medium, &l.Campaign, &l.Referrer, &l.Landing, &arrived,
+		&f.Channel, &f.Source, &f.Medium, &f.Campaign, &f.Referrer, &f.Landing, &first)
+	t.At, l.At, f.At = time.Unix(at, 0), time.Unix(arrived, 0), time.Unix(first, 0)
+	return t, err
+}
+
+// LeadTouches lists what a lead sent from the website, newest first.
+func (db *DB) LeadTouches(ctx context.Context, leadID int64) ([]Touch, error) {
+	rows, err := db.QueryContext(ctx, `SELECT `+touchColumns+` FROM touches WHERE lead_id = ? ORDER BY at DESC, id DESC`, leadID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []Touch
+	for rows.Next() {
+		t, err := scanTouch(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, t)
+	}
+	return out, rows.Err()
+}

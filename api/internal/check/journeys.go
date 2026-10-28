@@ -327,6 +327,7 @@ func (c *Checker) reservation(ctx context.Context) error {
 	if r.Status != "requested" || r.Home.Status != "held" {
 		return fmt.Errorf("the reservation came back as %s", body)
 	}
+	c.reserved = r.Ref
 	res, _, err = c.send(ctx, "/api/reservations", with(visitor, "home", id, "plan", "cash", "agree", true))
 	if err != nil {
 		return err

@@ -13,6 +13,11 @@ info:
     API sets. Errors are problem documents (RFC 9457). A 422 names each form
     field that needs another look in `errors`.
 
+    The sales desk lives under /api/desk. A member of the team signs in by
+    password or by a one-click link and gets the oriel_desk cookie, which
+    works with the copy it was made on. Most desk operations are open to the
+    whole team; those marked for the sales manager answer 403 to an agent.
+
     Oriel is an invented development and everything in it is sample data.
 servers:
   - url: /
@@ -23,6 +28,8 @@ tags:
     description: What visitors send.
   - name: system
     description: Health and live updates.
+  - name: desk
+    description: The sales desk, for the sales team.
 
 paths:
   /api/healthz:
@@ -195,7 +202,7 @@ paths:
       operationId: paymentPlans
       summary: Each way to pay, worked out on one price.
       parameters:
-        - { name: price, in: query, description: In KES; 18,000,000 when left out., schema: { type: integer, minimum: 1000000, maximum: 500000000 } }
+        - { name: price, in: query, description: "In KES; 18,000,000 when left out.", schema: { type: integer, minimum: 1000000, maximum: 500000000 } }
       responses:
         "200":
           description: One schedule per plan.
@@ -438,6 +445,686 @@ paths:
       responses:
         "204": { description: Deleted. }
 
+  /api/desk/session:
+    post:
+      tags: [desk]
+      operationId: deskSignIn
+      summary: Sign in to the sales desk with a username and password.
+      description: |
+        Signs in on this browser's own copy, making one if need be, and sets
+        the oriel_desk cookie. Wrong details answer 401 without saying which
+        was wrong.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SignInInput" }
+      responses:
+        "200":
+          description: Signed in.
+          headers:
+            Set-Cookie:
+              description: The oriel_desk session, and the oriel_copy cookie when a copy was made.
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeskSession" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "415": { $ref: "#/components/responses/Problem" }
+        "429": { $ref: "#/components/responses/Problem" }
+        "503": { $ref: "#/components/responses/Problem" }
+    get:
+      tags: [desk]
+      operationId: deskSession
+      summary: Who is signed in, and their role.
+      security: [{ deskSession: [] }]
+      responses:
+        "200":
+          description: The member signed in.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeskSession" }
+        "401": { $ref: "#/components/responses/Problem" }
+    delete:
+      tags: [desk]
+      operationId: deskSignOut
+      summary: Sign out of the desk.
+      responses:
+        "204":
+          description: Signed out, or never signed in.
+          headers:
+            Set-Cookie:
+              description: The oriel_desk cookie, expired.
+              schema: { type: string }
+
+  /api/desk/enter/{role}/{sig}:
+    get:
+      tags: [desk]
+      operationId: deskEnter
+      summary: A one-click sign-in link to a fresh copy of the business.
+      description: |
+        Makes a new copy, signs in on it as the first member with the role,
+        sets the oriel_copy and oriel_desk cookies and sends the browser to
+        the desk. The signature comes from the desk key; a wrong one is
+        answered as a page that does not exist.
+      parameters:
+        - { name: role, in: path, required: true, schema: { type: string, enum: [manager, agent] } }
+        - { name: sig, in: path, required: true, schema: { type: string } }
+      responses:
+        "303":
+          description: Signed in; on to /desk.
+          headers:
+            Location:
+              schema: { type: string, enum: [/desk] }
+            Set-Cookie:
+              description: The new copy and the session.
+              schema: { type: string }
+        "404": { $ref: "#/components/responses/Problem" }
+        "503": { $ref: "#/components/responses/Problem" }
+
+  /api/desk/events:
+    get:
+      tags: [desk]
+      operationId: deskEvents
+      summary: Live updates for the desk's copy, as server-sent events.
+      description: |
+        The same stream as /api/events, for the team alone. Changes made on
+        the desk are sent as events of type `unit`, `reservation`,
+        `lead-changed` and `prices`.
+      security: [{ deskSession: [] }]
+      responses:
+        "200":
+          description: The stream.
+          content:
+            text/event-stream:
+              schema: { type: string }
+        "401": { $ref: "#/components/responses/Problem" }
+        "503": { $ref: "#/components/responses/Problem" }
+
+  /api/desk/team:
+    get:
+      tags: [desk]
+      operationId: deskTeam
+      summary: The sales team, the manager first.
+      security: [{ deskSession: [] }]
+      responses:
+        "200":
+          description: The team.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeskTeam" }
+        "401": { $ref: "#/components/responses/Problem" }
+
+  /api/desk/dashboard:
+    get:
+      tags: [desk]
+      operationId: deskDashboard
+      summary: The desk's front page, with where leads came from.
+      security: [{ deskSession: [] }]
+      responses:
+        "200":
+          description: The dashboard.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeskDashboard" }
+        "401": { $ref: "#/components/responses/Problem" }
+
+  /api/desk/stack:
+    get:
+      tags: [desk]
+      operationId: deskStack
+      summary: The stacking plan, every home by floor with its status and price.
+      security: [{ deskSession: [] }]
+      responses:
+        "200":
+          description: The stacking plan.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeskStack" }
+        "401": { $ref: "#/components/responses/Problem" }
+
+  /api/desk/homes/{id}:
+    get:
+      tags: [desk]
+      operationId: deskHome
+      summary: A home's drawer, with its history and its reservation.
+      security: [{ deskSession: [] }]
+      parameters:
+        - $ref: "#/components/parameters/HomeId"
+      responses:
+        "200":
+          description: The home.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeskHomeDetail" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /api/desk/homes/{id}/status:
+    post:
+      tags: [desk]
+      operationId: deskHomeStatus
+      summary: Withhold a home from sale or release it. For the sales manager.
+      security: [{ deskSession: [] }]
+      parameters:
+        - $ref: "#/components/parameters/HomeId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DeskStatusInput" }
+      responses:
+        "200":
+          description: Changed; the home's drawer as it now stands.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeskHomeDetail" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "415": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /api/desk/homes/{id}/price:
+    post:
+      tags: [desk]
+      operationId: deskHomePrice
+      summary: Give a home its own price, or put it back on the list price. For the sales manager.
+      security: [{ deskSession: [] }]
+      parameters:
+        - $ref: "#/components/parameters/HomeId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DeskPriceInput" }
+      responses:
+        "200":
+          description: Changed; the home's drawer as it now stands.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeskHomeDetail" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "415": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /api/desk/leads:
+    get:
+      tags: [desk]
+      operationId: deskLeads
+      summary: The leads, as a table or as the pipeline board.
+      description: Unknown filters are dropped; the answer says which applied. An agent sees only their own leads.
+      security: [{ deskSession: [] }]
+      parameters:
+        - $ref: "#/components/parameters/LeadStage"
+        - $ref: "#/components/parameters/LeadAgent"
+        - $ref: "#/components/parameters/LeadQuery"
+        - $ref: "#/components/parameters/LeadSource"
+        - $ref: "#/components/parameters/LeadSort"
+        - name: view
+          in: query
+          description: "`board` gives a column for each stage instead of the table."
+          schema: { type: string, enum: [table, board] }
+      responses:
+        "200":
+          description: The leads.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeskLeads" }
+        "401": { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [desk]
+      operationId: deskAddLead
+      summary: Add a lead by hand.
+      security: [{ deskSession: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DeskLeadInput" }
+      responses:
+        "201":
+          description: Added; the lead's page.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeskLeadPage" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+        "415": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /api/desk/leads.csv:
+    get:
+      tags: [desk]
+      operationId: deskLeadsCSV
+      summary: The leads as a spreadsheet, with where each first came from on the website.
+      security: [{ deskSession: [] }]
+      parameters:
+        - $ref: "#/components/parameters/LeadStage"
+        - $ref: "#/components/parameters/LeadAgent"
+        - $ref: "#/components/parameters/LeadQuery"
+        - $ref: "#/components/parameters/LeadSource"
+        - $ref: "#/components/parameters/LeadSort"
+      responses:
+        "200":
+          description: The CSV file.
+          content:
+            text/csv:
+              schema: { type: string }
+        "401": { $ref: "#/components/responses/Problem" }
+
+  /api/desk/leads/{id}:
+    get:
+      tags: [desk]
+      operationId: deskLead
+      summary: A lead's page, with its history, bookings and visits to the website.
+      security: [{ deskSession: [] }]
+      parameters:
+        - $ref: "#/components/parameters/LeadId"
+      responses:
+        "200":
+          description: The lead.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeskLeadPage" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /api/desk/leads/{id}/notes:
+    post:
+      tags: [desk]
+      operationId: deskLeadNote
+      summary: Write a note on a lead.
+      security: [{ deskSession: [] }]
+      parameters:
+        - $ref: "#/components/parameters/LeadId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DeskNoteInput" }
+      responses:
+        "200": { $ref: "#/components/responses/DeskLeadChanged" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "415": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /api/desk/leads/{id}/stage:
+    post:
+      tags: [desk]
+      operationId: deskLeadStage
+      summary: Move a lead to a stage.
+      security: [{ deskSession: [] }]
+      parameters:
+        - $ref: "#/components/parameters/LeadId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DeskStageInput" }
+      responses:
+        "200": { $ref: "#/components/responses/DeskLeadChanged" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "415": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /api/desk/leads/{id}/follow-up:
+    post:
+      tags: [desk]
+      operationId: deskLeadFollowUp
+      summary: Set or clear the day to follow a lead up on.
+      security: [{ deskSession: [] }]
+      parameters:
+        - $ref: "#/components/parameters/LeadId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DeskFollowUpInput" }
+      responses:
+        "200": { $ref: "#/components/responses/DeskLeadChanged" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "415": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /api/desk/leads/{id}/assign:
+    post:
+      tags: [desk]
+      operationId: deskLeadAssign
+      summary: Give a lead to a member of the team. For the sales manager.
+      security: [{ deskSession: [] }]
+      parameters:
+        - $ref: "#/components/parameters/LeadId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DeskAssignInput" }
+      responses:
+        "200": { $ref: "#/components/responses/DeskLeadChanged" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "415": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /api/desk/leads/{id}/move:
+    post:
+      tags: [desk]
+      operationId: deskLeadMove
+      summary: A card dropped on the board, between two others.
+      security: [{ deskSession: [] }]
+      parameters:
+        - $ref: "#/components/parameters/LeadId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DeskMoveInput" }
+      responses:
+        "204": { description: Moved. }
+        "400": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "415": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /api/desk/viewings:
+    get:
+      tags: [desk]
+      operationId: deskViewings
+      summary: The viewings agenda, the opening hours and the closed days.
+      description: An agent sees only their own leads' viewings.
+      security: [{ deskSession: [] }]
+      parameters:
+        - name: from
+          in: query
+          description: The first day; Monday of this week when left out.
+          schema: { $ref: "#/components/schemas/Date" }
+        - name: to
+          in: query
+          description: The last day, up to 62 days on; six days after the first when left out.
+          schema: { $ref: "#/components/schemas/Date" }
+      responses:
+        "200":
+          description: The agenda.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeskAgenda" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /api/desk/viewings/{ref}/outcome:
+    post:
+      tags: [desk]
+      operationId: deskViewingOutcome
+      summary: Say whether the visitor came to a viewing.
+      security: [{ deskSession: [] }]
+      parameters:
+        - $ref: "#/components/parameters/ViewingRef"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DeskOutcomeInput" }
+      responses:
+        "200":
+          description: Recorded.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeskViewingResult" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "415": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /api/desk/viewings/hours:
+    put:
+      tags: [desk]
+      operationId: deskViewingHours
+      summary: Change the sales suite's opening days, times and parties per slot. For the sales manager.
+      security: [{ deskSession: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DeskHoursInput" }
+      responses:
+        "200":
+          description: Saved; the booking calendar follows at once.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeskHoursResult" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "415": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /api/desk/viewings/blocks:
+    post:
+      tags: [desk]
+      operationId: deskBlockDay
+      summary: Close a day for viewings. For the sales manager.
+      security: [{ deskSession: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DeskBlockInput" }
+      responses:
+        "200":
+          description: Closed; every closed day from today on.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeskBlocksResult" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "415": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /api/desk/viewings/blocks/{day}:
+    delete:
+      tags: [desk]
+      operationId: deskUnblockDay
+      summary: Open a closed day again. For the sales manager.
+      security: [{ deskSession: [] }]
+      parameters:
+        - { name: day, in: path, required: true, schema: { $ref: "#/components/schemas/Date" } }
+      responses:
+        "200":
+          description: Open again; every closed day from today on.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeskBlocksResult" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /api/desk/reservations:
+    get:
+      tags: [desk]
+      operationId: deskReservations
+      summary: One tab of the reservations, with how many each tab holds.
+      description: An agent sees only their own leads' reservations.
+      security: [{ deskSession: [] }]
+      parameters:
+        - name: group
+          in: query
+          description: The tab; waiting when left out or unknown.
+          schema: { $ref: "#/components/schemas/ReservationGroup" }
+      responses:
+        "200":
+          description: The tab.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeskReservations" }
+        "401": { $ref: "#/components/responses/Problem" }
+
+  /api/desk/reservations/{ref}/confirm:
+    post:
+      tags: [desk]
+      operationId: deskConfirmReservation
+      summary: Confirm a waiting request, issue the letter of offer and reserve the home. For the sales manager.
+      description: The letter of offer is then at /api/reservations/{ref}/offer.pdf.
+      security: [{ deskSession: [] }]
+      parameters:
+        - $ref: "#/components/parameters/ReservationRef"
+      responses:
+        "200": { $ref: "#/components/responses/DeskReservationDecided" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /api/desk/reservations/{ref}/decline:
+    post:
+      tags: [desk]
+      operationId: deskDeclineReservation
+      summary: Turn a reservation down and put the home back on sale. For the sales manager.
+      security: [{ deskSession: [] }]
+      parameters:
+        - $ref: "#/components/parameters/ReservationRef"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DeskDeclineInput" }
+      responses:
+        "200": { $ref: "#/components/responses/DeskReservationDecided" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "415": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /api/desk/reservations/{ref}/deposit:
+    post:
+      tags: [desk]
+      operationId: deskRecordDeposit
+      summary: Record the deposit on a confirmed reservation, which sells the home. For the sales manager.
+      security: [{ deskSession: [] }]
+      parameters:
+        - $ref: "#/components/parameters/ReservationRef"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DeskDepositInput" }
+      responses:
+        "200": { $ref: "#/components/responses/DeskReservationDecided" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "415": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /api/desk/pricing:
+    get:
+      tags: [desk]
+      operationId: deskPricing
+      summary: The price list in force and every list before it. For the sales manager.
+      security: [{ deskSession: [] }]
+      responses:
+        "200":
+          description: The price lists.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeskPricing" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [desk]
+      operationId: deskPublishPrices
+      summary: Publish a new price list. For the sales manager.
+      description: The website, every home's schedule and the price-list PDF change at once. Homes with their own price keep it.
+      security: [{ deskSession: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DeskPricingInput" }
+      responses:
+        "201":
+          description: In force; the price lists as they now stand.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeskPricing" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "415": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /api/desk/pricing/preview:
+    post:
+      tags: [desk]
+      operationId: deskPreviewPrices
+      summary: What a new price list would do to every home not yet reserved or sold. For the sales manager.
+      security: [{ deskSession: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DeskPricingInput" }
+      responses:
+        "200":
+          description: The preview. Nothing is published.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeskPricePreview" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "415": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /api/desk/activity:
+    get:
+      tags: [desk]
+      operationId: deskActivity
+      summary: Who changed what, and when, sixty lines at a time.
+      security: [{ deskSession: [] }]
+      parameters:
+        - name: kind
+          in: query
+          description: Whose activity; everything when left out.
+          schema: { type: string, enum: [staff, visitor, system] }
+        - name: offset
+          in: query
+          description: How many of the newest lines to skip.
+          schema: { type: integer, minimum: 0 }
+      responses:
+        "200":
+          description: A page of the log.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeskActivity" }
+        "401": { $ref: "#/components/responses/Problem" }
+
 components:
   parameters:
     HomeId:
@@ -451,6 +1138,40 @@ components:
       in: path
       required: true
       schema: { type: string }
+    LeadId:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer }
+    ReservationRef:
+      name: ref
+      in: path
+      required: true
+      schema: { type: string }
+    LeadStage:
+      name: stage
+      in: query
+      schema: { $ref: "#/components/schemas/Stage" }
+    LeadAgent:
+      name: agent
+      in: query
+      description: Only this member's leads. The manager alone may choose; an agent always sees only their own.
+      schema: { type: integer, minimum: 1 }
+    LeadQuery:
+      name: q
+      in: query
+      description: Name, email, phone or interest containing this.
+      schema: { type: string }
+    LeadSource:
+      name: source
+      in: query
+      description: Only leads from this source, such as Paid social or Referral.
+      schema: { type: string }
+    LeadSort:
+      name: sort
+      in: query
+      description: Latest activity first when left out.
+      schema: { type: string, enum: [recent, name, follow, board] }
 
   responses:
     Problem:
@@ -458,6 +1179,25 @@ components:
       content:
         application/problem+json:
           schema: { $ref: "#/components/schemas/Problem" }
+    DeskLeadChanged:
+      description: Changed; the lead's page as it now stands, with what the change did.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/DeskLeadPage" }
+    DeskReservationDecided:
+      description: Decided; the reservation and its home as they now stand.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/DeskReservationResult" }
+
+  securitySchemes:
+    deskSession:
+      type: apiKey
+      in: cookie
+      name: oriel_desk
+      description: |
+        A member of the sales team's session, set by signing in. It belongs
+        to the copy it was made on, which the oriel_copy cookie names.
 
   schemas:
     Problem:
@@ -465,7 +1205,7 @@ components:
       description: An error, as RFC 9457 describes.
       required: [type, title, status]
       properties:
-        type: { type: string, description: "A URI whose last part names the problem: validation, slot-taken, busy, rate-limited, not-found, server." }
+        type: { type: string, description: "A URI whose last part names the problem: validation, slot-taken, not-available, busy, rate-limited, not-found, server, and on the desk signed-out, bad-sign-in, managers-only, not-yours and lead-exists." }
         title: { type: string }
         status: { type: integer }
         detail: { type: string }
@@ -510,7 +1250,7 @@ components:
         bathrooms: { type: integer }
         study: { type: boolean }
         dsq: { type: boolean }
-        internal: { type: integer, description: Floor area inside, in square metres. }
+        internal: { type: integer, description: "Floor area inside, in square metres." }
         outdoor: { type: integer }
         outdoorName: { type: string }
         facing:
@@ -838,7 +1578,7 @@ components:
               date: { $ref: "#/components/schemas/Date" }
               open: { type: boolean }
               reason: { type: string }
-              blocked: { type: boolean, description: Closed for a holiday or by the sales team, not the weekly day off. }
+              blocked: { type: boolean, description: "Closed for a holiday or by the sales team, not the weekly day off." }
               free: { type: integer }
               slots:
                 type: array
@@ -978,3 +1718,594 @@ components:
         id: { type: string }
         status: { type: string }
         text: { type: string }
+
+    Stage:
+      type: string
+      enum: [new, contacted, viewing, reservation, won, lost]
+    Channel:
+      type: string
+      description: How a visitor arrived, as the site works it out from the link they followed.
+      enum: [Search, Paid search, Social media, Paid social, Property portal, Email, WhatsApp, Other website, Direct]
+    ReservationGroup:
+      type: string
+      description: "A tab of the reservations page: waiting for a decision, confirmed and awaiting the deposit, sold, or closed."
+      enum: [waiting, confirmed, completed, closed]
+    Counts:
+      type: object
+      additionalProperties: { type: integer }
+
+    SignInInput:
+      type: object
+      required: [username, password]
+      properties:
+        username: { type: string }
+        password: { type: string }
+    DeskStaff:
+      type: object
+      description: A member of the sales team.
+      required: [id, username, name, role, title, colour, initials]
+      properties:
+        id: { type: integer }
+        username: { type: string }
+        name: { type: string }
+        role: { type: string, enum: [manager, agent] }
+        title: { type: string }
+        colour: { type: string }
+        initials: { type: string }
+    DeskSession:
+      type: object
+      required: [staff, manager, waiting]
+      properties:
+        staff: { $ref: "#/components/schemas/DeskStaff" }
+        manager: { type: boolean, description: "The sales manager may change prices and statuses, decide reservations and see every lead." }
+        waiting: { type: integer, description: Reservation requests waiting for a decision. }
+    DeskTeam:
+      type: object
+      required: [team]
+      properties:
+        team: { type: array, items: { $ref: "#/components/schemas/DeskStaff" } }
+
+    DeskHome:
+      type: object
+      description: A home as the desk sees it, with its price whatever its status.
+      required: [id, level, number, type, typeName, title, facings, internal, riverView, status, statusName, price, listPrice, overridden, wide]
+      properties:
+        id: { type: string }
+        level: { type: integer }
+        number: { type: integer }
+        type: { type: string, enum: [A, B, C, D, P] }
+        typeName: { type: string }
+        title: { type: string }
+        facings: { type: string }
+        internal: { type: integer }
+        riverView: { type: boolean }
+        status: { $ref: "#/components/schemas/Status" }
+        statusName: { type: string }
+        price: { type: integer }
+        listPrice: { type: integer }
+        overridden: { type: boolean, description: "The home has its own price rather than the price list's." }
+        wide: { type: boolean, description: "A penthouse, which takes half its floor on the stacking plan." }
+    DeskReservation:
+      type: object
+      required: [ref, status, statusName, group, leadId, name, email, phone, home, plan, planName, price, note, agent, requested, holdEnds, holdSecondsLeft, decided, decidedBy, declineReason, offerNumber, offer, deposit, depositAmount, suggestedDeposit]
+      properties:
+        ref: { type: string }
+        status: { type: string, enum: [requested, confirmed, declined, lapsed, completed, cancelled] }
+        statusName: { type: string }
+        group: { $ref: "#/components/schemas/ReservationGroup" }
+        leadId: { type: integer }
+        name: { type: string }
+        email: { type: string }
+        phone: { type: string }
+        home: { type: string }
+        plan: { type: string }
+        planName: { type: string }
+        price: { type: integer }
+        note: { type: string, description: The buyer's own note. }
+        agent: { type: string }
+        requested: { $ref: "#/components/schemas/LocalTime" }
+        holdEnds: { $ref: "#/components/schemas/LocalTime" }
+        holdSecondsLeft: { type: integer }
+        decided: { type: string, description: "A time in Nairobi, or empty." }
+        decidedBy: { type: string }
+        declineReason: { type: string }
+        offerNumber: { type: string }
+        offer: { type: string, description: "The letter of offer's address, or empty before one is issued." }
+        deposit: { type: string, description: "A time in Nairobi, or empty." }
+        depositAmount: { type: integer }
+        suggestedDeposit: { type: integer, description: "A tenth of the price, which the deposit form starts from." }
+    DeskViewing:
+      type: object
+      required: [ref, leadId, name, email, phone, home, start, minutes, party, status, notes, outcome, agent, booked, due]
+      properties:
+        ref: { type: string }
+        leadId: { type: integer }
+        name: { type: string }
+        email: { type: string }
+        phone: { type: string }
+        home: { type: string, description: "The home the visitor asked to see, or empty." }
+        start: { $ref: "#/components/schemas/LocalTime" }
+        minutes: { type: integer }
+        party: { type: integer }
+        status: { type: string, enum: [booked, attended, no_show, cancelled] }
+        notes: { type: string }
+        outcome: { type: string, description: What the agent wrote after the visit. }
+        agent: { type: string }
+        booked: { $ref: "#/components/schemas/LocalTime" }
+        due: { type: boolean, description: "A booked viewing whose time has come, waiting for the agent to say whether the visitor came." }
+    DeskLead:
+      type: object
+      required: [id, name, email, phone, source, stage, stageTitle, agentId, agent, agentColour, interest, budget, buying, followUpOn, overdue, lostReason, created, updated, stageChanged]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        email: { type: string }
+        phone: { type: string }
+        source: { type: string, description: "The website's channel for their first arrival, or what the team wrote down, such as Referral." }
+        stage: { $ref: "#/components/schemas/Stage" }
+        stageTitle: { type: string }
+        agentId: { type: integer }
+        agent: { type: string }
+        agentColour: { type: string }
+        interest: { type: string }
+        budget: { type: integer }
+        buying: { type: string, enum: ["", home, investment] }
+        followUpOn: { $ref: "#/components/schemas/DateOrEmpty" }
+        overdue: { type: boolean }
+        lostReason: { type: string }
+        created: { $ref: "#/components/schemas/LocalTime" }
+        updated: { $ref: "#/components/schemas/LocalTime" }
+        stageChanged: { $ref: "#/components/schemas/LocalTime" }
+
+    DeskDashboard:
+      type: object
+      required: [asOf, counts, total, stock, soldValue, months, newLeads, newLeadsWas, funnel, sources, week, waitingTotal, waiting, followUpsTotal, followUps, channels, whatsapp]
+      properties:
+        asOf: { $ref: "#/components/schemas/Date" }
+        counts: { $ref: "#/components/schemas/Counts" }
+        total: { type: integer }
+        stock: { type: integer, description: "The price of every home still to sell: available, on hold or withheld." }
+        soldValue: { type: integer, description: The price of every confirmed or completed reservation. }
+        months:
+          type: array
+          description: The homes sold in each of the last eight months, this one last.
+          items:
+            type: object
+            required: [month, label, sold, value]
+            properties:
+              month: { type: string, pattern: "^[0-9]{4}-[0-9]{2}$" }
+              label: { type: string }
+              sold: { type: integer }
+              value: { type: integer }
+        newLeads: { type: integer, description: Leads in the last seven days. }
+        newLeadsWas: { type: integer, description: Leads in the seven days before. }
+        funnel:
+          type: array
+          description: How far leads have got. A lead counts in every stage it has passed; a lost lead only in Lost and New.
+          items:
+            type: object
+            required: [stage, label, n, reached, percent, lost]
+            properties:
+              stage: { $ref: "#/components/schemas/Stage" }
+              label: { type: string }
+              n: { type: integer }
+              reached: { type: integer }
+              percent: { type: integer }
+              lost: { type: boolean }
+        sources:
+          type: array
+          description: Every lead by where it came from, the commonest first.
+          items:
+            type: object
+            required: [source, leads]
+            properties:
+              source: { type: string }
+              leads: { type: integer }
+        week:
+          type: array
+          description: The viewings from today to a week ahead.
+          items: { $ref: "#/components/schemas/DeskViewing" }
+        waitingTotal: { type: integer }
+        waiting:
+          type: array
+          description: The six newest reservation requests waiting for a decision.
+          items: { $ref: "#/components/schemas/DeskReservation" }
+        followUpsTotal: { type: integer }
+        followUps:
+          type: array
+          description: Up to six open leads due a follow-up; an agent sees only their own.
+          items: { $ref: "#/components/schemas/DeskLead" }
+        channels:
+          type: array
+          description: |
+            The leads the website brought in, by the channel of their first
+            arrival: how many came, how many of them booked a viewing they did
+            not cancel, and how many asked to reserve a home. Leads added by
+            hand, and people the team knew before they used the website, are
+            left out. Every channel is listed, in order.
+          items:
+            type: object
+            required: [channel, leads, viewed, reserved]
+            properties:
+              channel: { $ref: "#/components/schemas/Channel" }
+              leads: { type: integer }
+              viewed: { type: integer }
+              reserved: { type: integer }
+        whatsapp:
+          type: array
+          description: Taps on WhatsApp links in the last 30 days, by the channel each visitor arrived through. Every channel is listed, in order.
+          items:
+            type: object
+            required: [channel, taps]
+            properties:
+              channel: { $ref: "#/components/schemas/Channel" }
+              taps: { type: integer }
+
+    DeskStack:
+      type: object
+      required: [floors, counts, total]
+      properties:
+        floors:
+          type: array
+          description: Every floor with homes, the top floor first.
+          items:
+            type: object
+            required: [level, name, homes]
+            properties:
+              level: { type: integer }
+              name: { type: string }
+              homes: { type: array, items: { $ref: "#/components/schemas/DeskHome" } }
+        counts: { $ref: "#/components/schemas/Counts" }
+        total: { type: integer }
+    DeskHomeDetail:
+      type: object
+      required: [home, history, reservation, canChange, notice]
+      properties:
+        home: { $ref: "#/components/schemas/DeskHome" }
+        history:
+          type: array
+          description: The home's changes, newest first. A status change runs between statuses; a price change between prices or "list price".
+          items:
+            type: object
+            required: [at, kind, from, to, reason, staff]
+            properties:
+              at: { $ref: "#/components/schemas/LocalTime" }
+              kind: { type: string, enum: [status, price] }
+              from: { type: string }
+              to: { type: string }
+              reason: { type: string }
+              staff: { type: string }
+        reservation:
+          oneOf:
+            - { $ref: "#/components/schemas/DeskReservation" }
+            - { type: "null" }
+        canChange: { type: boolean, description: "Only the sales manager may change a home's status or price." }
+        notice: { type: string, description: What a change just did; empty on a read. }
+    DeskStatusInput:
+      type: object
+      required: [status, reason]
+      properties:
+        status: { type: string, enum: [withheld, available] }
+        reason: { type: string }
+    DeskPriceInput:
+      type: object
+      required: [price, reason]
+      properties:
+        price: { type: integer, minimum: 0, description: "In KES, to the nearest 10,000; 0 puts the home back on the list price." }
+        reason: { type: string }
+
+    DeskLeads:
+      type: object
+      required: [filter, leads, more, columns, counts, total, sources, csv]
+      properties:
+        filter:
+          type: object
+          description: The filters as they were applied.
+          required: [stage, agent, q, source, sort, view]
+          properties:
+            stage:
+              oneOf:
+                - { $ref: "#/components/schemas/Stage" }
+                - { type: string, enum: [""] }
+            agent: { type: integer, description: "The member whose leads are shown, or 0 for everyone's." }
+            q: { type: string }
+            source: { type: string }
+            sort: { type: string, enum: [recent, name, follow, board] }
+            view: { type: string, enum: [table, board] }
+        leads:
+          type: array
+          description: The table, up to 300; empty on the board.
+          items: { $ref: "#/components/schemas/DeskLead" }
+        more: { type: boolean, description: More leads match than the table holds. }
+        columns:
+          type: array
+          description: The board, a column for each stage; empty for the table. The won and lost columns show only their most recent.
+          items:
+            type: object
+            required: [stage, title, leads, more]
+            properties:
+              stage: { $ref: "#/components/schemas/Stage" }
+              title: { type: string }
+              leads: { type: array, items: { $ref: "#/components/schemas/DeskLead" } }
+              more: { type: integer, description: Leads at the stage the board leaves out. }
+        counts: { $ref: "#/components/schemas/Counts" }
+        total: { type: integer }
+        sources: { type: array, description: "Every source leads have come from, the commonest first.", items: { type: string } }
+        csv: { type: string, description: The same list as a spreadsheet. }
+    DeskArrival:
+      type: object
+      description: One arrival at the site.
+      required: [channel, source, medium, campaign, referrer, landing, at]
+      properties:
+        channel: { $ref: "#/components/schemas/Channel" }
+        source: { type: string }
+        medium: { type: string }
+        campaign: { type: string }
+        referrer: { type: string, description: The host of the site that sent the visitor. }
+        landing: { type: string }
+        at: { $ref: "#/components/schemas/LocalTime" }
+    DeskLeadPage:
+      type: object
+      required: [lead, timeline, viewings, reservations, touches, notice]
+      properties:
+        lead: { $ref: "#/components/schemas/DeskLead" }
+        timeline:
+          type: array
+          description: The lead's history, newest first.
+          items:
+            type: object
+            required: [at, kind, body, home, staff]
+            properties:
+              at: { $ref: "#/components/schemas/LocalTime" }
+              kind: { type: string }
+              body: { type: string }
+              home: { type: string }
+              staff: { type: string }
+        viewings: { type: array, items: { $ref: "#/components/schemas/DeskViewing" } }
+        reservations: { type: array, items: { $ref: "#/components/schemas/DeskReservation" } }
+        touches:
+          type: array
+          description: What the lead sent from the website, newest first, with where they came from each time.
+          items:
+            type: object
+            required: [at, action, home, last, first]
+            properties:
+              at: { $ref: "#/components/schemas/LocalTime" }
+              action: { type: string, enum: [enquiry, viewing, reservation] }
+              home: { type: string }
+              last: { $ref: "#/components/schemas/DeskArrival" }
+              first: { $ref: "#/components/schemas/DeskArrival" }
+        notice: { type: string, description: What a change just did; empty on a read. }
+    DeskLeadInput:
+      type: object
+      required: [name, email, phone]
+      properties:
+        name: { type: string }
+        email: { type: string }
+        phone: { type: string }
+        source: { type: string, description: "Such as Walk-in, Phone call or Referral; Walk-in when left out." }
+        interest: { type: string }
+        buying: { type: string, enum: [home, investment] }
+        agent: { type: integer, description: "Who looks after the lead. Only the manager chooses; an agent's new lead is their own." }
+        note: { type: string }
+    DeskNoteInput:
+      type: object
+      required: [body]
+      properties:
+        body: { type: string }
+    DeskStageInput:
+      type: object
+      required: [stage]
+      properties:
+        stage: { $ref: "#/components/schemas/Stage" }
+        reason: { type: string, description: Why a lost lead was lost. }
+    DeskFollowUpInput:
+      type: object
+      required: [day]
+      properties:
+        day: { $ref: "#/components/schemas/DateOrEmpty" }
+    DeskAssignInput:
+      type: object
+      required: [agent]
+      properties:
+        agent: { type: integer }
+    DeskMoveInput:
+      type: object
+      required: [stage]
+      properties:
+        stage: { $ref: "#/components/schemas/Stage" }
+        reason: { type: string, description: Why a lost lead was lost. }
+        after: { type: integer, description: "The card now above it, or 0 at the top." }
+        before: { type: integer, description: "The card now below it, or 0 at the bottom." }
+
+    DeskHours:
+      type: object
+      required: [days, times, capacity, minutes]
+      properties:
+        days: { type: array, description: "0 for Sunday to 6 for Saturday.", items: { type: integer, minimum: 0, maximum: 6 } }
+        times: { type: array, items: { type: string, pattern: "^[0-9]{2}:[0-9]{2}$" } }
+        capacity: { type: integer, description: Parties a slot takes at once. }
+        minutes: { type: integer, description: How long a visit takes. }
+    DeskBlock:
+      type: object
+      required: [day, reason]
+      properties:
+        day: { $ref: "#/components/schemas/Date" }
+        reason: { type: string }
+    DeskAgenda:
+      type: object
+      required: [from, to, days, viewings, hours, blocks]
+      properties:
+        from: { $ref: "#/components/schemas/Date" }
+        to: { $ref: "#/components/schemas/Date" }
+        days:
+          type: array
+          items:
+            type: object
+            required: [date, open, blocked, viewings]
+            properties:
+              date: { $ref: "#/components/schemas/Date" }
+              open: { type: boolean, description: The suite opens that day and nobody has closed it. }
+              blocked: { type: string, description: "Why the day was closed, or empty." }
+              viewings: { type: integer, description: "Visits booked that day, leaving out cancelled ones." }
+        viewings: { type: array, description: "Every viewing in those days, earliest first.", items: { $ref: "#/components/schemas/DeskViewing" } }
+        hours: { $ref: "#/components/schemas/DeskHours" }
+        blocks: { type: array, description: Every closed day from today on., items: { $ref: "#/components/schemas/DeskBlock" } }
+    DeskOutcomeInput:
+      type: object
+      required: [outcome]
+      properties:
+        outcome: { type: string, enum: [attended, no_show] }
+        notes: { type: string }
+    DeskHoursInput:
+      type: object
+      required: [days, times, capacity]
+      properties:
+        days: { type: array, description: "0 for Sunday to 6 for Saturday.", items: { type: integer } }
+        times: { type: array, description: "24-hour start times, such as 10:00.", items: { type: string } }
+        capacity: { type: integer, minimum: 1, maximum: 6 }
+    DeskBlockInput:
+      type: object
+      required: [day, reason]
+      properties:
+        day: { $ref: "#/components/schemas/Date" }
+        reason: { type: string }
+    DeskViewingResult:
+      type: object
+      required: [viewing, notice]
+      properties:
+        viewing: { $ref: "#/components/schemas/DeskViewing" }
+        notice: { type: string }
+    DeskHoursResult:
+      type: object
+      required: [hours, notice]
+      properties:
+        hours: { $ref: "#/components/schemas/DeskHours" }
+        notice: { type: string }
+    DeskBlocksResult:
+      type: object
+      required: [blocks, notice]
+      properties:
+        blocks: { type: array, items: { $ref: "#/components/schemas/DeskBlock" } }
+        notice: { type: string }
+
+    DeskReservations:
+      type: object
+      required: [group, counts, reservations]
+      properties:
+        group: { $ref: "#/components/schemas/ReservationGroup" }
+        counts: { $ref: "#/components/schemas/Counts" }
+        reservations:
+          type: array
+          description: The waiting by when their hold lapses, the rest newest first.
+          items: { $ref: "#/components/schemas/DeskReservation" }
+    DeskReservationResult:
+      type: object
+      required: [reservation, home, notice]
+      properties:
+        reservation: { $ref: "#/components/schemas/DeskReservation" }
+        home: { $ref: "#/components/schemas/DeskHome" }
+        notice: { type: string }
+    DeskDeclineInput:
+      type: object
+      required: [reason]
+      properties:
+        reason: { type: string, description: Shown to the buyer. }
+    DeskDepositInput:
+      type: object
+      required: [amount]
+      properties:
+        amount: { type: integer, description: In KES. }
+
+    PriceBases:
+      type: object
+      description: The price in KES of each type on level 2 without a river view, to the nearest 10,000.
+      required: [A, B, C, D, P]
+      properties:
+        A: { type: integer }
+        B: { type: integer }
+        C: { type: integer }
+        D: { type: integer }
+        P: { type: integer }
+    PriceListInput:
+      type: object
+      description: "A price list: a base price for each type, raised for each floor above level 2 and for a river view."
+      required: [base, floorBP, riverBP]
+      properties:
+        base: { $ref: "#/components/schemas/PriceBases" }
+        floorBP: { type: integer, description: "The premium for each floor above level 2, in basis points: 100 is 1%." }
+        riverBP: { type: integer, description: "The premium for a river view, in basis points." }
+    DeskPricingInput:
+      type: object
+      required: [list]
+      properties:
+        list: { $ref: "#/components/schemas/PriceListInput" }
+        note: { type: string, description: What changed. }
+    DeskPriceList:
+      type: object
+      required: [id, published, by, note, base, floorBP, riverBP]
+      properties:
+        id: { type: integer }
+        published: { $ref: "#/components/schemas/LocalTime" }
+        by: { type: string }
+        note: { type: string }
+        base: { $ref: "#/components/schemas/PriceBases" }
+        floorBP: { type: integer }
+        riverBP: { type: integer }
+    DeskPricing:
+      type: object
+      required: [current, history, notice]
+      properties:
+        current: { $ref: "#/components/schemas/DeskPriceList" }
+        history: { type: array, description: "Every published list, newest first.", items: { $ref: "#/components/schemas/DeskPriceList" } }
+        notice: { type: string, description: What publishing just did; empty on a read. }
+    DeskPricePreview:
+      type: object
+      required: [list, note, rows, oldTotal, newTotal, changed, keptOwn]
+      properties:
+        list: { $ref: "#/components/schemas/PriceListInput" }
+        note: { type: string }
+        rows:
+          type: array
+          description: Every home not yet reserved or sold, those whose price changes first.
+          items:
+            type: object
+            required: [home, type, level, status, old, new, change, keepsOwn]
+            properties:
+              home: { type: string }
+              type: { type: string, enum: [A, B, C, D, P] }
+              level: { type: integer }
+              status: { $ref: "#/components/schemas/Status" }
+              old: { type: integer }
+              new: { type: integer }
+              change: { type: integer }
+              keepsOwn: { type: boolean, description: "A home with its own price, which a new list leaves alone." }
+        oldTotal: { type: integer }
+        newTotal: { type: integer }
+        changed: { type: integer, description: Homes the list would reprice. }
+        keptOwn: { type: integer, description: Homes keeping a price of their own. }
+
+    DeskActivity:
+      type: object
+      required: [kind, offset, entries, more, next]
+      properties:
+        kind: { type: string, enum: ["", staff, visitor, system] }
+        offset: { type: integer }
+        entries:
+          type: array
+          items:
+            type: object
+            description: "A line of the log. The action marks where the subject goes with {}; without a mark the subject comes last."
+            required: [id, at, actor, staff, colour, action, subject, detail, link]
+            properties:
+              id: { type: integer }
+              at: { $ref: "#/components/schemas/LocalTime" }
+              actor: { type: string, enum: [staff, visitor, system] }
+              staff: { type: string }
+              colour: { type: string }
+              action: { type: string }
+              subject: { type: string }
+              detail: { type: string }
+              link: { type: string, description: "The desk's page about the subject, or empty." }
+        more: { type: boolean, description: There are older lines. }
+        next: { type: integer, description: The offset that reads them. }

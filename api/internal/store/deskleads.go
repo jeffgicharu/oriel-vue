@@ -52,6 +52,7 @@ func scanLead(row interface{ Scan(...any) error }) (Lead, error) {
 type LeadFilter struct {
 	AgentID int64  // only this agent's leads
 	Stage   string // only this stage
+	Source  string // only leads that came from here, such as "Paid social" or "Referral"
 	Query   string // name, email, phone or interest containing this
 	Sort    string // "recent" (default), "name", "follow"
 	Limit   int
@@ -68,6 +69,10 @@ func (db *DB) Leads(ctx context.Context, f LeadFilter) ([]Lead, error) {
 	if f.Stage != "" {
 		q += ` AND l.stage = ?`
 		args = append(args, f.Stage)
+	}
+	if f.Source != "" {
+		q += ` AND l.source = ?`
+		args = append(args, f.Source)
 	}
 	if term := strings.TrimSpace(f.Query); term != "" {
 		like := "%" + strings.ToLower(term) + "%"

@@ -1,5 +1,7 @@
 package sample
 
+import "github.com/jeffgicharu/oriel-vue/api/internal/attribution"
+
 // People who enquire. Names are common across Kenya's communities and among
 // the buyers from abroad a Riverside development attracts. They are
 // combined at random, so no entry describes a real person.
@@ -23,18 +25,39 @@ var lastNames = []string{
 // sample can reach a real person.
 var emailDomains = []string{"example.com", "example.com", "example.net", "example.org"}
 
-// Where people heard about Oriel, with how often each happens.
+// Where people heard about Oriel, with how often each happens. The first are
+// the website's channels, which the site works out from the link a visitor
+// followed; the rest reach the sales team some other way, and the team
+// writes them down.
 var sources = []struct {
 	name   string
 	weight int
+	web    bool
 }{
-	{"Website", 34},
-	{"Referral", 15},
-	{"Property portal", 15},
-	{"Social media", 12},
-	{"Walk-in", 10},
-	{"Agent network", 8},
-	{"Site hoarding", 6},
+	{attribution.Search, 10, true},
+	{attribution.PaidSocial, 9, true},
+	{attribution.PaidSearch, 6, true},
+	{attribution.Direct, 5, true},
+	{attribution.Email, 2, true},
+	{attribution.WhatsApp, 2, true},
+	{"Referral", 15, false},
+	{"Property portal", 15, false},
+	{"Social media", 12, false},
+	{"Walk-in", 10, false},
+	{"Agent network", 8, false},
+	{"Site hoarding", 6, false},
+}
+
+// searchReferrers are the search engines visitors arrive from, the commonest
+// most often.
+var searchReferrers = []string{"https://www.google.com/", "https://www.google.com/", "https://www.google.co.ke/", "https://www.bing.com/"}
+
+// socialAds are the networks the paid social campaigns run on, with the
+// address each sends its visitors from.
+var socialAds = []struct{ source, referrer string }{
+	{"instagram", "https://l.instagram.com/"},
+	{"instagram", "https://l.instagram.com/"},
+	{"facebook", "https://lm.facebook.com/"},
 }
 
 var lostReasons = []string{
