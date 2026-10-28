@@ -164,7 +164,9 @@ async function signOut() {
         <span class="desk-bar__title">{{ forbidden ? "Managers only" : title }}</span>
       </header>
       <main id="main" class="desk-content" tabindex="-1">
-        <div v-if="desk.notice" class="desk-notice" role="status">{{ desk.notice }}</div>
+        <div v-if="desk.notice" class="desk-notice">{{ desk.notice }}</div>
+        <!-- Always there, so a screen reader hears each notice as it arrives. -->
+        <p class="visually-hidden" role="status">{{ desk.notice }}</p>
         <RequestView v-if="desk.session.data === null" :state="desk.session" :retry="() => desk.loadSession(true)" loading-label="Loading the desk…">
           <template #default />
         </RequestView>

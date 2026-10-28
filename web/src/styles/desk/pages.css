@@ -741,6 +741,11 @@
   color: var(--stone);
 }
 
+/* Today, when it is the day shown: light on the dark tile, like any chosen day. */
+.week-day.is-today[aria-current="page"] .week-day__num {
+  color: var(--plaster-hi);
+}
+
 .week-day.is-closed:not([aria-current="page"]) {
   border-style: dashed;
   background: transparent;

@@ -112,12 +112,13 @@ onBeforeUnmount(() => document.removeEventListener("keydown", onKey));
                 :data-unit="h.id"
                 :data-type="h.type"
                 :aria-current="openId === h.id ? 'true' : undefined"
-                :aria-label="`Home ${h.id}, ${h.typeName}, ${h.statusName}`"
                 @click="open(h.id)"
               >
-                <span class="stack-cell__id mono">{{ h.id }}</span>
-                <span class="stack-cell__type">{{ h.type }}</span>
-                <span class="stack-cell__price tnum">{{ cellPrice(h) }}</span>
+                <!-- The name is what the cell shows, whole, with the rest said before and after it. -->
+                <span class="stack-cell__id mono"><span class="visually-hidden">Home </span>{{ h.id }}</span>
+                <span class="stack-cell__type"><span class="visually-hidden">, </span>{{ h.type }}</span>
+                <span class="stack-cell__price tnum"><span class="visually-hidden">, </span>{{ cellPrice(h) }}</span>
+                <span class="visually-hidden">, {{ h.typeName }}{{ cellPrice(h) === h.statusName ? "" : `, ${h.statusName}` }}</span>
               </button>
             </div>
           </div>

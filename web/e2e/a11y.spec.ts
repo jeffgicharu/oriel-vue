@@ -31,7 +31,9 @@ async function check(page: Page, path: string) {
   // Let the drawings finish tracing themselves, so colours are checked as seen.
   await page.emulateMedia({ reducedMotion: "reduce" });
   const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();
-  expect(results.violations.map((v) => `${v.id}: ${v.nodes.length} × ${v.help}`)).toEqual([]);
+  // Each failure names the first few elements it was found on.
+  const where = (v: (typeof results.violations)[number]) => v.nodes.slice(0, 3).map((n) => n.target.join(" ")).join(", ");
+  expect(results.violations.map((v) => `${v.id}: ${v.nodes.length} × ${v.help} (${where(v)})`)).toEqual([]);
 }
 
 test.describe("accessibility", () => {
