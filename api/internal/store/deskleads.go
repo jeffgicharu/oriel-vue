@@ -255,6 +255,14 @@ func orderBetween(ctx context.Context, tx *sql.Tx, after, before int64) (float64
 	return max + 1, err
 }
 
+// topOrder is a sort order ahead of every lead, so a new lead is the first
+// card in its column, where the team looks first.
+func topOrder(ctx context.Context, tx *sql.Tx) float64 {
+	var min float64
+	tx.QueryRowContext(ctx, `SELECT COALESCE(MIN(sort_order), 1) FROM leads`).Scan(&min)
+	return min - 1
+}
+
 // AddNote writes a note on a lead.
 func (db *DB) AddNote(ctx context.Context, leadID int64, body string, by Staff, now time.Time) error {
 	body = strings.TrimSpace(body)
@@ -356,15 +364,13 @@ func (db *DB) AddLead(ctx context.Context, n NewLead, by Staff, now time.Time) (
 		if n.Source == "" {
 			n.Source = "Walk-in"
 		}
-		var maxOrder float64
-		tx.QueryRowContext(ctx, `SELECT COALESCE(MAX(sort_order), 0) FROM leads`).Scan(&maxOrder)
 		var budget any
 		if n.Budget > 0 {
 			budget = n.Budget
 		}
 		res, err := tx.ExecContext(ctx, `INSERT INTO leads (name, email, phone, source, stage, agent_id, interest, budget, buying_for, follow_up_on, sort_order, created_at, updated_at, stage_changed_at)
 			VALUES (?, ?, ?, ?, 'new', ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-			n.Name, strings.ToLower(n.Email), n.Phone, n.Source, agent, n.Interest, budget, n.Buying, now.In(nairobi).AddDate(0, 0, 1).Format("2006-01-02"), maxOrder+1, now.Unix(), now.Unix(), now.Unix())
+			n.Name, strings.ToLower(n.Email), n.Phone, n.Source, agent, n.Interest, budget, n.Buying, now.In(nairobi).AddDate(0, 0, 1).Format("2006-01-02"), topOrder(ctx, tx), now.Unix(), now.Unix(), now.Unix())
 		if err != nil {
 			return err
 		}

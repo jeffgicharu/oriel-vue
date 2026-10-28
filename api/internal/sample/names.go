@@ -28,7 +28,8 @@ var emailDomains = []string{"example.com", "example.com", "example.net", "exampl
 // Where people heard about Oriel, with how often each happens. The first are
 // the website's channels, which the site works out from the link a visitor
 // followed; the rest reach the sales team some other way, and the team
-// writes them down.
+// writes them down. Social media and the property portals bring both kinds:
+// a message or a portal's own enquiry form, or a link through to the site.
 var sources = []struct {
 	name   string
 	weight int
@@ -38,15 +39,21 @@ var sources = []struct {
 	{attribution.PaidSocial, 9, true},
 	{attribution.PaidSearch, 6, true},
 	{attribution.Direct, 5, true},
+	{attribution.PropertyPortal, 4, true},
+	{attribution.SocialMedia, 4, true},
 	{attribution.Email, 2, true},
 	{attribution.WhatsApp, 2, true},
-	{"Referral", 15, false},
-	{"Property portal", 15, false},
-	{"Social media", 12, false},
+	{attribution.OtherWebsite, 2, true},
+	{"Referral", 14, false},
+	{attribution.PropertyPortal, 11, false},
+	{attribution.SocialMedia, 8, false},
 	{"Walk-in", 10, false},
 	{"Agent network", 8, false},
-	{"Site hoarding", 6, false},
+	{"Site hoarding", 5, false},
 }
+
+// articleReferrers are the sites that have written about Oriel and link to it.
+var articleReferrers = []string{"https://www.nairobipropertyreview.co.ke/", "https://www.riversideresidents.co.ke/"}
 
 // searchReferrers are the search engines visitors arrive from, the commonest
 // most often.

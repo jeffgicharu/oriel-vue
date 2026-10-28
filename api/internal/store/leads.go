@@ -129,11 +129,9 @@ func FindOrCreateLead(ctx context.Context, tx *sql.Tx, c Contact, at time.Time) 
 	if source == "" {
 		source = "Website"
 	}
-	var maxOrder float64
-	tx.QueryRowContext(ctx, `SELECT COALESCE(MAX(sort_order), 0) FROM leads`).Scan(&maxOrder)
 	res, err := tx.ExecContext(ctx, `INSERT INTO leads (name, email, phone, source, stage, agent_id, interest, budget, buying_for, follow_up_on, sort_order, created_at, updated_at, stage_changed_at)
 		VALUES (?, ?, ?, ?, 'new', ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		c.Name, email, c.Phone, source, agentArg, c.Interest, budget, c.Buying, at.In(nairobi).AddDate(0, 0, 1).Format("2006-01-02"), maxOrder+1, at.Unix(), at.Unix(), at.Unix())
+		c.Name, email, c.Phone, source, agentArg, c.Interest, budget, c.Buying, at.In(nairobi).AddDate(0, 0, 1).Format("2006-01-02"), topOrder(ctx, tx), at.Unix(), at.Unix(), at.Unix())
 	if err != nil {
 		return 0, false, err
 	}

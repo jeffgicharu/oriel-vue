@@ -74,6 +74,11 @@ func (s *Story) arrival(channel string, l *Lead, at time.Time, landing string) a
 		t.Source, t.Medium, t.Campaign, t.Referrer = ad.source, "paid-social", s.campaign(channel, l, at), ad.referrer
 	case attribution.SocialMedia:
 		t.Referrer = "https://l.instagram.com/"
+	case attribution.PropertyPortal:
+		// A listing's link through to the developer's own site.
+		t.Source, t.Medium = "portal", "listing"
+	case attribution.OtherWebsite:
+		t.Referrer = s.visitPick(articleReferrers)
 	case attribution.Email:
 		t.Source, t.Medium, t.Campaign = "newsletter", "email", s.campaign(channel, l, at)
 	case attribution.WhatsApp:
@@ -101,8 +106,12 @@ func (s *Story) landing(channel, campaign string, l *Lead) string {
 		return s.visitPick([]string{"/", "/residences", typePage})
 	case channel == attribution.PaidSearch, channel == attribution.WhatsApp:
 		return s.visitPick([]string{"/residences", typePage})
-	case channel == attribution.PaidSocial:
+	case channel == attribution.PaidSocial, channel == attribution.SocialMedia:
 		return s.visitPick([]string{"/", "/explore", typePage})
+	case channel == attribution.PropertyPortal:
+		return typePage
+	case channel == attribution.OtherWebsite:
+		return s.visitPick([]string{"/", "/building"})
 	}
 	return s.visitPick([]string{"/", "/residences"})
 }
