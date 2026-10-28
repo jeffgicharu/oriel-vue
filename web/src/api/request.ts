@@ -21,13 +21,27 @@ export function idle<T>(): RequestState<T> {
 }
 
 /**
- * Runs a read into a request state. A read for the key it already holds is
- * skipped unless forced, and the data from the last answer stays on show
- * while a new one loads, so a filter change never blanks the list. If a
- * newer read starts before this one answers, this one's answer is dropped.
+ * Does the state already hold the answer for this key? An answer is data, a
+ * read under way, or a refusal that will not change by asking again, such
+ * as "there is no home 9999". A failure that might pass, such as the API
+ * being busy, is asked again.
+ */
+export function settled<T>(state: RequestState<T>, key: string): boolean {
+  if (state.key !== key) return false;
+  if (state.status === "ready" || state.status === "loading") return true;
+  return state.status === "error" && state.error !== null && state.error.status >= 400 && state.error.status < 500 && state.error.status !== 429;
+}
+
+/**
+ * Runs a read into a request state. A read for an answer the state already
+ * holds is skipped unless forced, so a page the server rendered is taken
+ * over in the browser exactly as it arrived. The data from the last answer
+ * stays on show while a new one loads, so a filter change never blanks the
+ * list. If a newer read starts before this one answers, this one's answer
+ * is dropped.
  */
 export async function load<T>(state: RequestState<T>, key: string, read: () => Promise<T>, force = false): Promise<void> {
-  if (!force && state.key === key && (state.status === "ready" || state.status === "loading")) return;
+  if (!force && settled(state, key)) return;
   state.key = key;
   state.status = "loading";
   state.error = null;

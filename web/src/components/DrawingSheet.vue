@@ -19,8 +19,6 @@ onMounted(() => {
 </script>
 
 <template>
-  <div v-if="panWidth" ref="frame" class="content-sheet__pan" :style="`--pan-width: ${panWidth}px`" tabindex="0" role="group" :aria-label="label">
-    <div class="content-sheet__svg" v-html="svg" />
-  </div>
-  <div v-else class="content-sheet__svg" v-html="svg" />
+  <div v-if="panWidth" ref="frame" class="content-sheet__pan" :style="`--pan-width: ${panWidth}px`" tabindex="0" role="group" :aria-label="label" v-html="svg" />
+  <div v-else class="content-sheet__drawing" v-html="svg" />
 </template>

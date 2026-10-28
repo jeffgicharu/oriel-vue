@@ -19,6 +19,7 @@ export type Progress = Schemas["Progress"];
 export type BuildingModel = Schemas["BuildingModel"];
 export type Calendar = Schemas["Calendar"];
 export type Viewing = Schemas["Viewing"];
+export type Reservation = Schemas["Reservation"];
 export type Source = Schemas["Source"];
 export type Touch = Schemas["Touch"];
 export type Status = Schemas["Status"];

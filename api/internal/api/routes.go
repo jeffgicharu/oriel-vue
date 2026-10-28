@@ -27,6 +27,9 @@ func (a *App) routes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/viewings/{ref}", a.viewing)
 	mux.HandleFunc("POST /api/viewings/{ref}/cancel", a.cancelViewing)
 	mux.HandleFunc("GET /api/viewings/{ref}/calendar.ics", a.viewingCalendar)
+	mux.HandleFunc("POST /api/reservations", a.reserve)
+	mux.HandleFunc("GET /api/reservations/{ref}", a.reservation)
+	mux.HandleFunc("GET /api/reservations/{ref}/offer.pdf", a.offerPDF)
 	mux.HandleFunc("GET /api/privacy", a.privacy)
 	mux.HandleFunc("POST /api/privacy/delete", a.deleteMine)
 

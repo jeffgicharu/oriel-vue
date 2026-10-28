@@ -57,9 +57,10 @@ onBeforeUnmount(() => {
 <template>
   <header class="site-header" :class="{ 'site-header--over': frame.page.headerOver, 'is-scrolled': frame.page.headerOver && scrolled }">
     <div class="wrap site-header__inner">
-      <RouterLink class="wordmark" to="/" aria-label="Oriel, home">
+      <RouterLink class="wordmark" to="/">
         <span class="wordmark__name">ORIEL</span>
         <span class="wordmark__place label">Riverside · Nairobi</span>
+        <span class="visually-hidden">, home</span>
       </RouterLink>
       <nav class="site-nav" aria-label="Main">
         <ul role="list">

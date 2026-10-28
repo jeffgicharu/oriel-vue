@@ -12,6 +12,8 @@ export default defineConfig({
   reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "list",
   use: {
     baseURL: process.env.E2E_BASE_URL ?? "http://127.0.0.1:8700",
+    // In CI the tests carry the release check's token, as the gate does.
+    extraHTTPHeaders: process.env.E2E_CHECK_TOKEN ? { "X-Oriel-Check": process.env.E2E_CHECK_TOKEN } : {},
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },

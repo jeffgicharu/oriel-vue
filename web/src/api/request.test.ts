@@ -37,6 +37,16 @@ describe("a read's state", () => {
     expect(state.data).toBe("new");
   });
 
+  it("does not ask again for a refusal that will not change, such as a missing home", async () => {
+    const state = idle<string>();
+    const read = vi.fn().mockRejectedValue({ status: 404, kind: "not-found", title: "Not found", detail: "", fields: {} });
+    await load(state, "9999", read);
+    await load(state, "9999", read);
+    expect(read).toHaveBeenCalledTimes(1);
+    await load(state, "9999", read, true);
+    expect(read).toHaveBeenCalledTimes(2);
+  });
+
   it("keeps the API's error for the page to show, with a way to try again", async () => {
     const state = idle<string>();
     await load(state, "x", () => Promise.reject({ status: 503, kind: "busy", title: "Busy just now", detail: "", fields: {} }));

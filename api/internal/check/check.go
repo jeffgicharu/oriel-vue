@@ -67,6 +67,7 @@ var pages = []struct {
 	{"/buying", "Buying off-plan · Oriel, Riverside", "Three ways to pay."},
 	{"/viewings/new", "Book a viewing · Oriel, Riverside", "Book a viewing."},
 	{"/enquire", "Ask a question · Oriel, Riverside", "Ask us anything."},
+	{"/reserve/0704", "Reserve home 0704 · Oriel, Riverside", "Request a reservation."},
 	{"/privacy", "Privacy · Oriel, Riverside", "Your privacy."},
 	{"/terms", "Terms of use · Oriel, Riverside", "Terms of use."},
 }
@@ -146,6 +147,7 @@ func (c *Checker) Run(ctx context.Context) error {
 		{"a booked viewing renders for the visitor who made it and nobody else", c.privateViewing},
 		{"two visitors' pages rendered at once never see each other's", c.concurrentRenders},
 		{"a visitor cancels the viewing", c.cancelViewing},
+		{"a visitor requests a reservation, the home is held, and its page is theirs alone", c.reservation},
 		{"a visitor deletes what they sent", c.deleteMine},
 	}
 	for _, step := range steps {

@@ -128,6 +128,15 @@ jobs:
           done
           curl -fsS http://127.0.0.1:8700/healthz
 
+      # The browser tests carry the release check's token, as the gate does,
+      # so their copies are thrown away and they are not held to one
+      # address's limits. CI's secret is made for this run alone.
+      - name: Let the browser tests identify themselves
+        run: |
+          token="$(./release/api/oriel-vue-api check-token --env-file "$RUNNER_TEMP/api.env")"
+          echo "::add-mask::$token"
+          echo "E2E_CHECK_TOKEN=$token" >> "$GITHUB_ENV"
+
       - name: The release gate, as the server runs it
         run: ./release/api/oriel-vue-api check-release --env-file "$RUNNER_TEMP/api.env" --web http://127.0.0.1:8700 --api http://127.0.0.1:8702 --release "$GITHUB_SHA"
 

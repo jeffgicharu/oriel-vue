@@ -21,7 +21,7 @@ const f1 = (v: number) => v.toFixed(1);
       <span><i class="swatch swatch--morning" />Morning</span>
       <span><i class="swatch swatch--afternoon" />Afternoon</span>
     </div>
-    <svg :viewBox="`0 0 ${f1(chart.w)} ${f1(chart.h)}`" role="img" :aria-label="lightSummary(light)">
+    <svg :viewBox="`0 0 ${f1(chart.w)} ${f1(chart.h)}`" role="group" :aria-label="lightSummary(light)">
       <template v-for="g in grid" :key="g">
         <path class="light-chart__grid" :d="`M${f1(chart.left)} ${f1(chartY(g, laid.max))}H${f1(chart.w - 8)}`" />
         <text class="light-chart__axis" :x="f1(chart.left - 8)" :y="f1(chartY(g, laid.max))" text-anchor="end" dominant-baseline="middle">{{ g }}h</text>

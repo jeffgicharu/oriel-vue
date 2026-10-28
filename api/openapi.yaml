@@ -360,6 +360,60 @@ paths:
               schema: { type: string }
         "404": { $ref: "#/components/responses/Problem" }
 
+  /api/reservations:
+    post:
+      tags: [visitors]
+      operationId: reserve
+      summary: Request a reservation; the home is held for 72 hours while the sales team confirms it.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ReservationInput" }
+      responses:
+        "201":
+          description: Requested, and the home held.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Reservation" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+        "415": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+        "429": { $ref: "#/components/responses/Problem" }
+        "503": { $ref: "#/components/responses/Problem" }
+
+  /api/reservations/{ref}:
+    get:
+      tags: [visitors]
+      operationId: getReservation
+      summary: A reservation made from this browser.
+      parameters:
+        - { name: ref, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The reservation.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Reservation" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /api/reservations/{ref}/offer.pdf:
+    get:
+      tags: [visitors]
+      operationId: offerLetter
+      summary: A confirmed reservation's letter of offer.
+      parameters:
+        - { name: ref, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The PDF.
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+        "404": { $ref: "#/components/responses/Problem" }
+
   /api/privacy:
     get:
       tags: [visitors]
@@ -880,6 +934,41 @@ components:
             - { type: "null" }
         agent: { type: string, description: The consultant who will show the visitor round. }
         createdAt: { type: string, format: date-time }
+
+    ReservationInput:
+      allOf:
+        - $ref: "#/components/schemas/ContactFields"
+        - type: object
+          required: [home, plan, agree]
+          properties:
+            home: { type: string }
+            plan: { type: string }
+            buying: { type: string, enum: [home, investment] }
+            note: { type: string }
+            agree: { type: boolean, description: The buyer confirms they understand how a reservation works. }
+            source: { $ref: "#/components/schemas/Source" }
+    Reservation:
+      type: object
+      required: [ref, status, name, email, phone, home, price, note, agent, requested, holdEnds, holdSecondsLeft, decided, declineReason, offerNumber, deposit, depositAmount, schedule]
+      properties:
+        ref: { type: string }
+        status: { type: string, enum: [requested, confirmed, declined, lapsed, completed, cancelled] }
+        name: { type: string }
+        email: { type: string }
+        phone: { type: string }
+        home: { $ref: "#/components/schemas/Home" }
+        price: { type: integer }
+        note: { type: string }
+        agent: { type: string }
+        requested: { $ref: "#/components/schemas/LocalTime" }
+        holdEnds: { $ref: "#/components/schemas/LocalTime" }
+        holdSecondsLeft: { type: integer }
+        decided: { type: string, description: "A time in Nairobi, or empty." }
+        declineReason: { type: string }
+        offerNumber: { type: string }
+        deposit: { type: string, description: "A time in Nairobi, or empty." }
+        depositAmount: { type: integer }
+        schedule: { $ref: "#/components/schemas/Schedule" }
 
     LiveEvent:
       type: object

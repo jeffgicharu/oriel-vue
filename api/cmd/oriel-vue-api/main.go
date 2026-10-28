@@ -8,6 +8,8 @@
 //	oriel-vue-api desk-links ...         print the one-click sign-in links for the sales desk
 //	oriel-vue-api model                  print the building's geometry as JSON
 //	oriel-vue-api drawings DIR           write the content pages' drawings into DIR, for the web build
+//	oriel-vue-api check-token --env-file F
+//	                                     print the release check's token, for the browser tests in CI
 package main
 
 import (
@@ -58,6 +60,8 @@ func main() {
 		err = json.NewEncoder(os.Stdout).Encode(building.ModelData())
 	case "drawings":
 		err = writeDrawings(os.Args[2:])
+	case "check-token":
+		err = checkToken(os.Args[2:])
 	default:
 		usage()
 		os.Exit(64)
@@ -212,5 +216,28 @@ func writeDrawings(args []string) error {
 			return err
 		}
 	}
+	return nil
+}
+
+// checkToken prints the token the release check sends, made from the secret.
+// CI gives it to the browser tests, so their copies are thrown away like the
+// gate's and their forms are not held to one address's limits. It is only
+// ever used with CI's throwaway secret.
+func checkToken(args []string) error {
+	fs := flag.NewFlagSet("check-token", flag.ContinueOnError)
+	envFile := fs.String("env-file", "", "read settings from this KEY=VALUE file")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if *envFile != "" {
+		if err := config.LoadEnvFile(*envFile); err != nil {
+			return err
+		}
+	}
+	secret := os.Getenv("ORIEL_SECRET")
+	if len(secret) < 32 {
+		return errors.New("check-token needs ORIEL_SECRET")
+	}
+	fmt.Println(api.ReleaseCheckToken([]byte(secret)))
 	return nil
 }

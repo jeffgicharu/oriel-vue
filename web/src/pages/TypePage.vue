@@ -79,7 +79,7 @@ usePageMeta(() => {
           </div>
           <PlanFigure :furniture="furniture">
             <p class="plan-hint label">Slide sideways to see the whole plan</p>
-            <div class="plan-scroll">
+            <div class="plan-scroll" tabindex="0" role="region" aria-label="Floor plan; on a narrow screen it scrolls sideways">
               <FloorPlan :plan="data.plan" :title="`Floor plan of type ${data.type.code}, ${data.type.name}`" />
             </div>
             <figcaption class="label muted">The plan as drawn for the homes on the left of each pair; their neighbours are its mirror image. Not to scale.</figcaption>

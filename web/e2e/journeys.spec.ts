@@ -49,7 +49,7 @@ test.describe("finding a home", () => {
   test("a home that does not exist is a real 404", async ({ page }) => {
     const res = await page.goto("/residences/9999");
     expect(res?.status()).toBe(404);
-    await expect(page.getByRole("heading", { level: 1, name: "Page not found." })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "This page isn’t on the plans." })).toBeVisible();
   });
 });
 
@@ -129,6 +129,36 @@ test.describe("getting in touch", () => {
   });
 });
 
+test.describe("reserving", () => {
+  test("a reservation holds the home, and its page is the buyer's", async ({ page, request }) => {
+    const home = await availableHome(request);
+    await page.goto(`/residences/${home.id}`);
+    await hydrated(page);
+    await page.locator("label.payplan", { hasText: "Cash" }).click();
+    await page.getByRole("link", { name: "Request a reservation" }).click();
+    await expect(page).toHaveURL(new RegExp(`/reserve/${home.id}\\?plan=cash$`));
+    await expect(page.locator("label.payplan", { hasText: "Cash" }).locator("input")).toBeChecked();
+
+    await page.getByRole("button", { name: "Request the reservation" }).click();
+    await expect(page.locator("#reserve-errors")).toContainText("Please confirm you understand how a reservation works.");
+
+    await page.getByLabel("Full name, as it will appear on the letter of offer").fill(buyer.name);
+    await page.getByLabel("Phone").fill(buyer.phone);
+    await page.getByLabel("Email").fill(buyer.email);
+    await page.getByLabel(/I understand this is a request/).check();
+    await page.getByRole("button", { name: "Request the reservation" }).click();
+
+    await expect(page).toHaveURL(/\/reservations\/R-[A-Z0-9]+\?new=1$/);
+    await expect(page.getByRole("heading", { level: 1, name: `Home ${home.id} is held for you.` })).toBeVisible();
+    await expect(page.locator(".steps__item.is-current")).toContainText("Letter of offer");
+
+    // The home is held: its own page says so, and offers no reservation.
+    await page.getByRole("link", { name: "See the home" }).click();
+    await expect(page.locator(".unit-head__deal .status")).toHaveText("On hold");
+    await expect(page.getByRole("link", { name: "Request a reservation" })).toHaveCount(0);
+  });
+});
+
 test.describe("keeping a shortlist", () => {
   test("shortlisted homes come together to compare, drawn to one scale", async ({ page, request }) => {
     const res = await request.get("/api/homes?beds=2");
@@ -159,6 +189,6 @@ test.describe("rendered on the server", () => {
     await expect(page.locator(".unit-head__price")).toContainText("KES");
     await page.goto("/residences?beds=3");
     await expect(page.locator("tbody tr").first()).toBeVisible();
-    await expect(page.locator("title")).toHaveText("Residences · Oriel, Riverside");
+    await expect(page).toHaveTitle("Residences · Oriel, Riverside");
   });
 });

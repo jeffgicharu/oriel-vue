@@ -50,8 +50,10 @@ function sizes(i: number) {
         <dl class="content-facts progress-facts">
           <div>
             <dt class="label">Overall</dt>
-            <dd class="tnum">{{ data.percent }}%</dd>
-            <div class="progress-bar" role="presentation"><span :style="`width: ${data.percent}%`" /></div>
+            <dd class="tnum">
+              {{ data.percent }}%
+              <span class="progress-bar" aria-hidden="true"><span :style="`width: ${data.percent}%`" /></span>
+            </dd>
           </div>
           <div><dt class="label">On site now</dt><dd>{{ data.current }}</dd></div>
           <div><dt class="label">Completion</dt><dd>{{ shortMonthYear(data.completion) }}</dd></div>

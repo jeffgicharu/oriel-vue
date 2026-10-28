@@ -289,3 +289,64 @@ func (c *Checker) deleteMine(ctx context.Context) error {
 	}
 	return nil
 }
+
+// reservation reserves the first home still for sale, checks it is now held
+// and can't be reserved again, and that its page renders for this visitor
+// and nobody else.
+func (c *Checker) reservation(ctx context.Context) error {
+	_, body, err := c.read(ctx, "/api/homes")
+	if err != nil {
+		return err
+	}
+	var list struct {
+		Homes []struct {
+			ID string `json:"id"`
+		} `json:"homes"`
+	}
+	if err := json.Unmarshal([]byte(body), &list); err != nil || len(list.Homes) == 0 {
+		return errors.New("no home is for sale to reserve")
+	}
+	id := list.Homes[0].ID
+	res, body, err := c.send(ctx, "/api/reservations", with(visitor, "home", id, "plan", "staged", "buying", "home", "note", "", "agree", true, "source", source()))
+	if err != nil {
+		return err
+	}
+	if err := want(res, http.StatusCreated); err != nil {
+		return fmt.Errorf("%w: %s", err, body)
+	}
+	var r struct {
+		Ref    string `json:"ref"`
+		Status string `json:"status"`
+		Home   struct {
+			Status string `json:"status"`
+		} `json:"home"`
+	}
+	if err := json.Unmarshal([]byte(body), &r); err != nil {
+		return err
+	}
+	if r.Status != "requested" || r.Home.Status != "held" {
+		return fmt.Errorf("the reservation came back as %s", body)
+	}
+	res, _, err = c.send(ctx, "/api/reservations", with(visitor, "home", id, "plan", "cash", "agree", true))
+	if err != nil {
+		return err
+	}
+	if res.StatusCode != http.StatusConflict {
+		return fmt.Errorf("a held home was reserved again: %d", res.StatusCode)
+	}
+	res, body, err = c.page(ctx, "/reservations/"+r.Ref)
+	if err != nil {
+		return err
+	}
+	if res.StatusCode != http.StatusOK || !strings.Contains(body, "is held for you.") {
+		return fmt.Errorf("the reservation's page answers %d without its news", res.StatusCode)
+	}
+	res, _, err = c.get(ctx, newClient(), c.Web, "/reservations/"+r.Ref)
+	if err != nil {
+		return err
+	}
+	if res.StatusCode != http.StatusNotFound {
+		return fmt.Errorf("another visitor can open the reservation: %d", res.StatusCode)
+	}
+	return nil
+}

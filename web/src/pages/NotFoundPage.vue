@@ -15,13 +15,15 @@ usePageMeta({
 </script>
 
 <template>
-  <div class="wrap error-page">
-    <p class="sheet-tag label">A-404 · Not found</p>
-    <h1 class="h1">Page not found.</h1>
-    <p class="lede">There is nothing at this address. The home or page may have moved, or the link may have a typing mistake in it.</p>
-    <div class="hero__actions">
-      <RouterLink class="btn btn--cobalt" :to="{ name: 'residences' }">See every home <ArrowIcon /></RouterLink>
-      <RouterLink class="btn btn--line" :to="{ name: 'home' }">Back to the start</RouterLink>
+  <section class="section drawing-grid error-page">
+    <div class="wrap error-page__inner">
+      <p class="label label--cobalt">Error 404 · Sheet not found</p>
+      <h1 class="h1">This page isn’t on the plans.</h1>
+      <p class="lede">The address may be mistyped, or the page may have moved. These will take you somewhere useful.</p>
+      <div class="hero__actions">
+        <RouterLink class="btn btn--cobalt" :to="{ name: 'residences' }">See the homes <ArrowIcon /></RouterLink>
+        <RouterLink class="btn btn--line" :to="{ name: 'home' }">Back to the start</RouterLink>
+      </div>
     </div>
-  </div>
+  </section>
 </template>

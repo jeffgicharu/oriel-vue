@@ -164,7 +164,8 @@ const plans = [
         </ul>
         <RouterLink class="btn btn--line" :to="{ name: 'residences', query: { show: 'all' } }">See every home <ArrowIcon /></RouterLink>
       </div>
-      <div v-if="o" class="stack" role="img" :aria-label="`Stacking plan: ${o.available} of ${o.total} homes are available.`">
+      <!-- The cells are for the mouse; a screen reader hears the summary and finds every home in the list. -->
+      <div v-if="o" class="stack" role="group" :aria-label="`Stacking plan: ${o.available} of ${o.total} homes are available.`">
         <div v-for="row in stack" :key="row.level" class="stack__row">
           <span class="stack__level mono" aria-hidden="true">{{ levelName(row.level) }}</span>
           <div class="stack__cells">
@@ -221,8 +222,8 @@ const plans = [
     <div class="wrap story-buy">
       <div class="story-buy__head">
         <p class="sheet-tag label">A-007 · Buying</p>
-        <h2 id="story-buy" class="h2">Pay your way.</h2>
-        <p class="lede">Three ways to pay, from staged payments while the building rises to a mortgage at completion. Every home’s page works out its own schedule to the shilling.</p>
+        <h2 id="story-buy" class="h2">Reserve online. Pay your way.</h2>
+        <p class="lede">Choose a home and a payment plan, and the home is held for you for 72 hours while the sales team prepares your letter of offer. No payment is taken online.</p>
       </div>
       <ol class="story-buy__plans" role="list">
         <li v-for="p in plans" :key="p.name">

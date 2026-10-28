@@ -28,6 +28,8 @@ export const routes: RouteRecordRaw[] = [
   { path: "/viewings/new", name: "viewing-new", component: () => import("@/pages/ViewingNewPage.vue") },
   { path: "/viewings/:ref([A-Za-z0-9-]{3,20})", name: "viewing", component: () => import("@/pages/ViewingPage.vue") },
   { path: "/enquire", name: "enquire", component: () => import("@/pages/EnquirePage.vue") },
+  { path: "/reserve/:id(\\d{4})", name: "reserve", component: () => import("@/pages/ReservePage.vue") },
+  { path: "/reservations/:ref([A-Za-z0-9-]{3,20})", name: "reservation", component: () => import("@/pages/ReservationPage.vue") },
   { path: "/privacy", name: "privacy", component: () => import("@/pages/PrivacyPage.vue") },
   { path: "/terms", name: "terms", component: () => import("@/pages/TermsPage.vue") },
   { path: "/:pathMatch(.*)*", name: "not-found", component: () => import("@/pages/NotFoundPage.vue") },
@@ -50,6 +52,8 @@ export interface RouteNamedMap {
   "viewing-new": RouteRecordInfo<"viewing-new", "/viewings/new", NoParams, NoParams>;
   viewing: RouteRecordInfo<"viewing", "/viewings/:ref", { ref: string }, { ref: string }>;
   enquire: RouteRecordInfo<"enquire", "/enquire", NoParams, NoParams>;
+  reserve: RouteRecordInfo<"reserve", "/reserve/:id", { id: string }, { id: string }>;
+  reservation: RouteRecordInfo<"reservation", "/reservations/:ref", { ref: string }, { ref: string }>;
   privacy: RouteRecordInfo<"privacy", "/privacy", NoParams, NoParams>;
   terms: RouteRecordInfo<"terms", "/terms", NoParams, NoParams>;
   "not-found": RouteRecordInfo<"not-found", "/:pathMatch(.*)*", { pathMatch: string | string[] }, { pathMatch: string | string[] }>;

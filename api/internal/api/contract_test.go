@@ -321,6 +321,31 @@ func TestEveryAnswerKeepsToTheContract(t *testing.T) {
 	k.call("GET", "/api/viewings/V-NONE0", nil)
 	k.call("POST", "/api/viewings/"+v.Ref+"/cancel", nil)
 	k.call("POST", "/api/viewings/V-NONE0/cancel", nil)
+	// A reservation on a home still for sale, then one it can no longer take.
+	_, body = k.call("GET", "/api/homes", nil)
+	var list HomeList
+	if err := json.Unmarshal(body, &list); err != nil || len(list.Homes) == 0 {
+		t.Fatalf("no home to reserve: %s", body)
+	}
+	free := list.Homes[0].ID
+	k.call("POST", "/api/reservations", with(buyer, "home", free, "plan", "layaway", "agree", false))
+	res, body = k.call("POST", "/api/reservations", with(buyer, "home", free, "plan", "cash", "buying", "investment", "agree", true, "source", src))
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("a reservation answered %d: %s", res.StatusCode, body)
+	}
+	var made Reservation
+	if err := json.Unmarshal(body, &made); err != nil {
+		t.Fatal(err)
+	}
+	if made.Status != "requested" || made.Home.Status != "held" || made.HoldSecondsLeft <= 0 {
+		t.Errorf("the reservation came back as %s", body)
+	}
+	k.call("POST", "/api/reservations", with(buyer, "home", free, "plan", "cash", "agree", true))
+	k.call("POST", "/api/reservations", with(buyer, "home", "9999", "plan", "cash", "agree", true))
+	k.call("GET", "/api/reservations/"+made.Ref, nil)
+	k.call("GET", "/api/reservations/R-NONE0", nil)
+	k.call("GET", "/api/reservations/"+made.Ref+"/offer.pdf", nil)
+
 	res, body = k.call("GET", "/api/privacy", nil)
 	if !strings.Contains(string(body), `"hasCopy":true`) {
 		t.Errorf("after sending a form the browser has no copy: %s", body)

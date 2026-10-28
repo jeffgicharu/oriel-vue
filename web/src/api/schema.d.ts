@@ -352,6 +352,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/reservations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Request a reservation; the home is held for 72 hours while the sales team confirms it. */
+        post: operations["reserve"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reservations/{ref}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A reservation made from this browser. */
+        get: operations["getReservation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reservations/{ref}/offer.pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A confirmed reservation's letter of offer. */
+        get: operations["offerLetter"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/privacy": {
         parameters: {
             query?: never;
@@ -751,6 +802,39 @@ export interface components {
             agent: string;
             /** Format: date-time */
             createdAt: string;
+        };
+        ReservationInput: components["schemas"]["ContactFields"] & {
+            home: string;
+            plan: string;
+            /** @enum {string} */
+            buying?: "home" | "investment";
+            note?: string;
+            /** @description The buyer confirms they understand how a reservation works. */
+            agree: boolean;
+            source?: components["schemas"]["Source"];
+        };
+        Reservation: {
+            ref: string;
+            /** @enum {string} */
+            status: "requested" | "confirmed" | "declined" | "lapsed" | "completed" | "cancelled";
+            name: string;
+            email: string;
+            phone: string;
+            home: components["schemas"]["Home"];
+            price: number;
+            note: string;
+            agent: string;
+            requested: components["schemas"]["LocalTime"];
+            holdEnds: components["schemas"]["LocalTime"];
+            holdSecondsLeft: number;
+            /** @description A time in Nairobi, or empty. */
+            decided: string;
+            declineReason: string;
+            offerNumber: string;
+            /** @description A time in Nairobi, or empty. */
+            deposit: string;
+            depositAmount: number;
+            schedule: components["schemas"]["Schedule"];
         };
         LiveEvent: {
             type: string;
@@ -1271,6 +1355,83 @@ export interface operations {
                 };
                 content: {
                     "text/calendar": string;
+                };
+            };
+            404: components["responses"]["Problem"];
+        };
+    };
+    reserve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReservationInput"];
+            };
+        };
+        responses: {
+            /** @description Requested, and the home held. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Reservation"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            415: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+            429: components["responses"]["Problem"];
+            503: components["responses"]["Problem"];
+        };
+    };
+    getReservation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ref: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The reservation. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Reservation"];
+                };
+            };
+            404: components["responses"]["Problem"];
+        };
+    };
+    offerLetter: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ref: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The PDF. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": string;
                 };
             };
             404: components["responses"]["Problem"];

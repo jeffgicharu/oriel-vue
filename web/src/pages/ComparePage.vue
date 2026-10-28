@@ -90,7 +90,7 @@ const rows: { label: string; value: (d: HomeDetail) => string }[] = [
             <span class="compare__label" />
             <div v-for="d in data" :key="d.home.id" class="compare__cell">
               <RouterLink class="btn btn--cobalt btn--small" :to="{ name: 'home-detail', params: { id: d.home.id } }">See this home</RouterLink>
-              <button class="link-arrow link-button compare__remove" type="button" @click="without(d.home.id)">Take it out</button>
+              <button class="link-arrow as-button compare__remove" type="button" @click="without(d.home.id)">Take it out</button>
             </div>
           </div>
         </div>

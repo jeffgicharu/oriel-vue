@@ -106,7 +106,10 @@ usePageMeta(() => {
               <p v-if="data.home.price !== null" class="unit-head__price"><span class="label">Price</span><span class="tnum">{{ kes(data.home.price) }}</span></p>
               <p v-else class="unit-head__price is-gone"><span class="label">Price</span><span>{{ statusName(data.home.status) }}</span></p>
               <div class="unit-head__actions">
-                <RouterLink class="btn btn--cobalt" :to="{ name: 'viewing-new', query: { home: data.home.id } }">Book a viewing <ArrowIcon /></RouterLink>
+                <RouterLink v-if="onSale" class="btn btn--cobalt" :to="{ name: 'reserve', params: { id: data.home.id }, query: route.query.plan ? { plan: route.query.plan } : {} }"
+                  >Request a reservation <ArrowIcon
+                /></RouterLink>
+                <RouterLink class="btn" :class="onSale ? 'btn--line' : 'btn--cobalt'" :to="{ name: 'viewing-new', query: { home: data.home.id } }">Book a viewing</RouterLink>
                 <RouterLink class="btn btn--line" :to="compareHref">Compare</RouterLink>
                 <ShortlistButton :id="data.home.id" />
               </div>
@@ -142,7 +145,7 @@ usePageMeta(() => {
               </div>
               <PlanFigure :furniture="furniture">
                 <p class="plan-hint label">Slide sideways to see the whole plan</p>
-                <div class="plan-scroll">
+                <div class="plan-scroll" tabindex="0" role="region" aria-label="Floor plan; on a narrow screen it scrolls sideways">
                   <FloorPlan :plan="data.plan" :north="data.north" :title="`Floor plan of home ${data.home.id}, ${data.home.typeName}`" />
                 </div>
                 <figcaption class="label muted">
@@ -236,7 +239,7 @@ usePageMeta(() => {
             <span class="mono">{{ data.home.id }}</span>
             <strong class="tnum">{{ kesShort(data.home.price) }}</strong>
           </div>
-          <RouterLink class="btn btn--cobalt btn--small" :to="{ name: 'viewing-new', query: { home: data.home.id } }">Book a viewing</RouterLink>
+          <RouterLink class="btn btn--cobalt btn--small" :to="{ name: 'reserve', params: { id: data.home.id } }">Reserve</RouterLink>
         </div>
       </article>
     </template>

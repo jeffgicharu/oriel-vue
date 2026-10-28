@@ -1,0 +1,83 @@
+/* What the Vue site adds to Oriel's styles. */
+
+/* After moving to another page, focus starts at the content, which needs no ring. */
+#main:focus {
+  outline: none;
+}
+
+/* A button that reads as a link, for actions that change the page rather than leave it. */
+.as-button {
+  border: 0;
+  padding: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.unit-head__ask {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+}
+
+/* WhatsApp, offered beside the forms. */
+.whatsapp-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.whatsapp-link__icon {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+
+.side-card .whatsapp-link {
+  justify-self: start;
+}
+
+/* A read from the API that has not answered yet, or failed. */
+.request-loading {
+  padding: 28px 0;
+}
+
+.request-error {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+  margin: 18px 0;
+}
+
+.request-error__title {
+  font-weight: 600;
+}
+
+.request-error__detail {
+  color: var(--ink-soft);
+}
+
+/* While new results load, the old ones stay, dimmed a little. */
+[aria-busy="true"] {
+  transition: opacity 0.2s var(--ease);
+}
+
+.schedule[aria-busy="true"],
+.schedule-card[aria-busy="true"] {
+  opacity: 0.6;
+}
+
+.error-summary p + p {
+  margin-top: 6px;
+}
+
+/* The progress bar sits inside its figure, so the list of facts stays a proper list. */
+.progress-facts .progress-bar {
+  display: block;
+  font-size: 0;
+}
+
+.error-summary .link-button {
+  color: inherit;
+}

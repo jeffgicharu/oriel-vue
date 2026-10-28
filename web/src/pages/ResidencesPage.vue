@@ -138,7 +138,7 @@ function choose(event: Event) {
               <strong class="tnum">{{ data.homes.length }}</strong> {{ data.homes.length === 1 ? "home" : "homes" }}{{ filter.all ? "" : " available" }}
             </p>
             <div class="results__links">
-              <button v-if="narrowed" class="link-arrow link-button" type="button" @click="reset">Clear filters</button>
+              <button v-if="narrowed" class="link-arrow as-button" type="button" @click="reset">Clear filters</button>
             </div>
           </div>
           <div v-if="data.homes.length === 0" class="empty">

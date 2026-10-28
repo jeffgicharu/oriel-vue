@@ -79,7 +79,7 @@ describe("rendering on the server", () => {
     const api = fakeApi({ "oriel_copy=a": viewing("V-AAAAA", "Amani Wanjiru") });
     const out = await render(input("/viewings/V-AAAAA", "oriel_copy=b", api));
     expect(out.status).toBe(404);
-    expect(out.html).toContain("Page not found.");
+    expect(out.html).toContain("This page isn’t on the plans.");
     expect(out.html).not.toContain("Amani");
   });
 
