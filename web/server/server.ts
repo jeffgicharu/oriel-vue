@@ -197,9 +197,10 @@ async function page(req: http.IncomingMessage, res: http.ServerResponse, url: st
     return;
   }
   const html = template
-    .replace("<!--html-attrs-->", out.head.htmlAttrs ? " " + out.head.htmlAttrs : "")
+    // The markers in the template are attributes, so it stays valid HTML.
+    .replace(" data-html-attrs", out.head.htmlAttrs ? " " + out.head.htmlAttrs : "")
     .replace("<!--head-->", preloadLinks(out.modules, ssrManifest) + out.head.headTags)
-    .replace("<!--body-attrs-->", out.head.bodyAttrs ? " " + out.head.bodyAttrs : "")
+    .replace(" data-body-attrs", out.head.bodyAttrs ? " " + out.head.bodyAttrs : "")
     .replace("<!--app-->", out.html)
     .replace("<!--state-->", `<script type="application/json" id="oriel-state">${out.state}</script>${out.head.bodyTags}`);
   const headers: http.OutgoingHttpHeaders = { ...pageHeaders(), "Content-Type": "text/html; charset=utf-8" };

@@ -26,6 +26,9 @@ export default defineConfig(({ isSsrBuild }) => ({
     sourcemap: false,
     // Pictures and fonts stay files with fingerprinted names, never inlined.
     assetsInlineLimit: 0,
+    // The largest file is three.js with the tower, about 180 KB compressed.
+    // It is fetched only by a device that will draw the building in 3D.
+    chunkSizeWarningLimit: 700,
   },
   // The renderer carries every package it uses, so a release needs no
   // node_modules on the server.
