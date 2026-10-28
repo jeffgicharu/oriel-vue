@@ -65,9 +65,11 @@ function storages(): { local?: Storage; session?: Storage } {
 /**
  * Records this arrival. The first touch is kept unless it is older than 90
  * days. The last touch is set at the start of each visit, and again whenever
- * the visitor arrives through a new campaign link.
+ * the visitor arrives through a new campaign link. The sales desk is the
+ * team's, not a buyer's way in, so opening it records nothing.
  */
 export function recordArrival(url: URL, referrer: string, now = new Date()): void {
+  if (url.pathname === "/desk" || url.pathname.startsWith("/desk/")) return;
   const { local, session } = storages();
   const touch = touchFrom(url, referrer, now);
   const first = readTouch(local, FIRST);

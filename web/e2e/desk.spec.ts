@@ -165,6 +165,34 @@ test.describe("the sales manager's day", () => {
     await expect(page.locator(`ol[data-stage="${to}"] > li`).first()).toHaveAttribute("data-id", id!);
   });
 
+  test("an enquiry from an advert reaches the desk with where it came from", async ({ page }) => {
+    // The team has the desk open in this browser first: that is not a buyer arriving.
+    await signIn(page, manager);
+    await page.goto("/residences?utm_source=facebook&utm_medium=paid-social&utm_campaign=october-open-day");
+    await hydrated(page);
+    await page.goto("/enquire");
+    await hydrated(page);
+    const name = "Advert Buyer";
+    await page.getByLabel("Full name").fill(name);
+    await page.getByLabel("Phone").fill(buyer.phone);
+    await page.getByLabel("Email").fill("advert-buyer@example.com");
+    await page.getByLabel("Your question").fill("Is a two-bedroom home on a high floor still free?");
+    await page.getByRole("button", { name: "Send the question" }).click();
+    await expect(page.getByRole("heading", { name: "Thank you, Advert." })).toBeVisible();
+
+    await page.goto(`/desk/leads?view=table&q=${encodeURIComponent(name)}`);
+    const row = page.locator("table.desk-table tbody tr", { hasText: name });
+    await expect(row).toContainText("Paid social");
+    await row.getByRole("link", { name }).click();
+    const where = page.getByRole("region", { name: "Where they came from" });
+    await expect(where).toContainText("october-open-day");
+    await expect(where).toContainText("/residences");
+
+    // A new lead is the first card in New.
+    await page.goto("/desk/leads");
+    await expect(page.locator('ol[data-stage="new"] > li').first()).toContainText(name);
+  });
+
   test("a reservation made on the website is confirmed on the desk", async ({ page, request }) => {
     // The buyer's side, in the same browser: the desk works on what this browser sent.
     const home = await availableHome(request);
