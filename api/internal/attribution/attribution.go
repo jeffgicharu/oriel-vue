@@ -168,8 +168,9 @@ func pathOf(raw string) string {
 	if raw == "" {
 		return ""
 	}
+	// A landing page is a path on this site, never an address elsewhere.
 	u, err := url.Parse(raw)
-	if err != nil || !strings.HasPrefix(u.Path, "/") || strings.HasPrefix(u.Path, "//") {
+	if err != nil || u.Scheme != "" || u.Host != "" || !strings.HasPrefix(u.Path, "/") || strings.HasPrefix(u.Path, "//") {
 		return ""
 	}
 	return clip(u.Path, 120)
