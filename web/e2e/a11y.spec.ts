@@ -28,8 +28,8 @@ async function check(page: Page, path: string) {
   await page.goto(path);
   await hydrated(page);
   expect(mismatches, "the page the server sent matches the one the browser renders").toEqual([]);
-  // Nothing on the page makes it scroll sideways, on a phone or a laptop.
-  for (const width of [390, 1280]) {
+  // Nothing on the page makes it scroll sideways, on the narrowest phone or a laptop.
+  for (const width of [360, 1280]) {
     await page.setViewportSize({ width, height: 900 });
     // The elements past the right edge that are not inside something that scrolls on its own.
     const past = await page.evaluate(() => {

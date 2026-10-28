@@ -198,6 +198,11 @@
   display: block;
 }
 
+/* A long email address breaks where it must, rather than widening the page. */
+.desk-facts dd {
+  overflow-wrap: anywhere;
+}
+
 .desk-home__form {
   padding: 14px;
   border: 1px solid var(--rule);
