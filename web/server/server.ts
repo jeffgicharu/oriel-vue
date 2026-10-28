@@ -13,7 +13,7 @@ import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { RenderInput, RenderOutput } from "../src/render";
-import { allowedCookies, clientAddress, nairobiToday, pageHeaders, preloadLinks, staticHeaders } from "./http";
+import { allowedCookies, canonicalPath, clientAddress, nairobiToday, pageHeaders, preloadLinks, staticHeaders } from "./http";
 
 declare const __RELEASE__: string;
 const release = __RELEASE__;
@@ -230,6 +230,12 @@ const server = http.createServer((req, res) => {
   if (sendFile(req, res, p)) return;
   if (p.startsWith("/assets/") || p.startsWith("/api/")) {
     sendText(req, res, 404, "text/plain; charset=utf-8", "Not found");
+    return;
+  }
+  const canonical = canonicalPath(p);
+  if (canonical) {
+    res.writeHead(301, { ...pageHeaders(), Location: canonical + url.search });
+    res.end();
     return;
   }
   void page(req, res, url.pathname + url.search);

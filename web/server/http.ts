@@ -90,6 +90,17 @@ export function staticHeaders(urlPath: string): Record<string, string> {
   };
 }
 
+/**
+ * The one address a page answers at, when the request used another: no
+ * trailing slash and no doubled slashes. Null when the path is already it.
+ * The result always starts with a single slash, so it can never point at
+ * another site.
+ */
+export function canonicalPath(urlPath: string): string | null {
+  const clean = "/" + urlPath.split("/").filter(Boolean).join("/");
+  return clean === urlPath ? null : clean;
+}
+
 /** Today's date in Nairobi, three hours ahead of UTC all year. */
 export function nairobiToday(now = new Date()): string {
   return new Date(now.getTime() + 3 * 3_600_000).toISOString().slice(0, 10);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { allowedCookies, clientAddress, nairobiToday, pageHeaders, preloadLinks, staticHeaders } from "./http";
+import { allowedCookies, canonicalPath, clientAddress, nairobiToday, pageHeaders, preloadLinks, staticHeaders } from "./http";
 
 describe("what the web server passes on", () => {
   it("forwards only the visitor's copy and the desk's session to the API", () => {
@@ -26,6 +26,15 @@ describe("what the web server passes on", () => {
     expect(staticHeaders("/assets/index-abc123.js")["Cache-Control"]).toBe("public, max-age=31536000, immutable");
     expect(staticHeaders("/favicon.svg")["Cache-Control"]).toBe("public, max-age=3600");
     expect(staticHeaders("/assets/x.woff2")["Content-Type"]).toBe("font/woff2");
+  });
+
+  it("sends a page's other spellings to its one address, and never off the site", () => {
+    expect(canonicalPath("/residences")).toBeNull();
+    expect(canonicalPath("/")).toBeNull();
+    expect(canonicalPath("/residences/")).toBe("/residences");
+    expect(canonicalPath("/residences//0504/")).toBe("/residences/0504");
+    expect(canonicalPath("//evil.example/")).toBe("/evil.example");
+    expect(canonicalPath("///")).toBe("/");
   });
 
   it("knows the day in Nairobi", () => {
