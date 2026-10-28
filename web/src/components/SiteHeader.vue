@@ -72,7 +72,7 @@ onBeforeUnmount(() => {
         </ul>
       </nav>
       <RouterLink
-        v-show="shortlist.count > 0"
+        :hidden="shortlist.count === 0"
         class="site-header__shortlist"
         :to="{ name: 'shortlist' }"
       >

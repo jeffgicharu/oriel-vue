@@ -199,6 +199,27 @@ test.describe("keeping a shortlist", () => {
   });
 });
 
+test.describe("the header on a phone", () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test("the menu button keeps to the right edge, with and without a shortlist", async ({ page, request }) => {
+    const menuNearEdge = async () => {
+      const box = await page.getByRole("button", { name: "Menu" }).boundingBox();
+      expect(box).not.toBeNull();
+      expect(390 - (box!.x + box!.width)).toBeLessThanOrEqual(24);
+    };
+    const home = await availableHome(request);
+    await page.goto(`/residences/${home.id}`);
+    await hydrated(page);
+    await expect(page.locator(".site-header__shortlist")).toBeHidden();
+    await menuNearEdge();
+
+    await page.getByRole("button", { name: "Shortlist" }).click();
+    await expect(page.locator(".site-header__shortlist")).toBeVisible();
+    await menuNearEdge();
+  });
+});
+
 test.describe("rendered on the server", () => {
   test.use({ javaScriptEnabled: false });
 
