@@ -1,0 +1,19 @@
+# Planning notes and handoff material stay on the laptop.
+/notes/
+/handoff/
+
+# Built and installed files.
+node_modules/
+/web/dist/
+/web/test-results/
+/web/playwright-report/
+/web/coverage/
+/release/
+/api/bin/
+
+# Local settings and keys.
+.env
+*.key
+*.pem
+/deploy/keys/
+/web/src/generated/

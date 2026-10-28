@@ -1,0 +1,57 @@
+[Unit]
+Description=Oriel API, %i slot
+After=network.target
+ConditionPathExists=/var/www/oriel-vue.jeffgicharu.com/slots/%i/api/oriel-vue-api
+
+[Service]
+Type=simple
+User=oriel-vue-api
+Group=oriel-vue-api
+WorkingDirectory=/var/www/oriel-vue.jeffgicharu.com/shared/data
+EnvironmentFile=/var/www/oriel-vue.jeffgicharu.com/shared/api.env
+# The slot's ports: blue is web 8700 and API 8702, green is 8701 and 8703.
+# The API listens on 127.0.0.1 only; nginx and the slot's web server are the
+# only callers.
+EnvironmentFile=/var/www/oriel-vue.jeffgicharu.com/shared/%i.ports
+Environment=ORIEL_DATA=/var/www/oriel-vue.jeffgicharu.com/shared/data
+# The Go runtime collects harder as it nears this, well inside MemoryMax.
+Environment=GOMEMLIMIT=96MiB
+ExecStart=/var/www/oriel-vue.jeffgicharu.com/slots/%i/api/oriel-vue-api serve
+Restart=on-failure
+RestartSec=3
+# On SIGTERM the API stops taking new requests, finishes the ones in hand and
+# closes live-update streams so browsers reconnect to the live slot.
+KillSignal=SIGTERM
+TimeoutStopSec=20
+# Two slots run side by side for about a minute during a release.
+MemoryMax=128M
+MemorySwapMax=0
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectHome=true
+ProtectSystem=strict
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+RestrictNamespaces=true
+LockPersonality=true
+SystemCallArchitectures=native
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+# Nothing outside this machine is ever called.
+IPAddressDeny=any
+IPAddressAllow=localhost
+# Go does not generate code at run time.
+MemoryDenyWriteExecute=true
+# Visitor copies are readable by the API's group only.
+UMask=0027
+ReadWritePaths=/var/www/oriel-vue.jeffgicharu.com/shared/data
+
+[Install]
+WantedBy=multi-user.target

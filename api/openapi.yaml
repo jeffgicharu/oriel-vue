@@ -1,0 +1,891 @@
+openapi: 3.1.0
+info:
+  title: Oriel API
+  version: "1"
+  summary: The homes, prices, plans, viewings, enquiries and reservations of Oriel, Riverside.
+  description: |
+    The REST JSON API behind Oriel's website and sales desk. The web server
+    renders pages from it, and browsers call it directly afterwards, on the
+    same address under /api.
+
+    Every visitor reads the shared sample until they first send something;
+    from then on they have a private copy, named by an HttpOnly cookie the
+    API sets. Errors are problem documents (RFC 9457). A 422 names each form
+    field that needs another look in `errors`.
+
+    Oriel is an invented development and everything in it is sample data.
+servers:
+  - url: /
+tags:
+  - name: building
+    description: The building and its homes.
+  - name: visitors
+    description: What visitors send.
+  - name: system
+    description: Health and live updates.
+
+paths:
+  /api/healthz:
+    get:
+      tags: [system]
+      operationId: healthz
+      summary: Which release this is, and that the sample can be read.
+      responses:
+        "200":
+          description: Healthy.
+          headers:
+            X-Release:
+              schema: { type: string }
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [release]
+                properties:
+                  release: { type: string }
+        "503": { $ref: "#/components/responses/Problem" }
+
+  /api/events:
+    get:
+      tags: [system]
+      operationId: events
+      summary: Live updates for this visitor's copy, as server-sent events.
+      description: |
+        Opens with a retry line, sends a comment every 20 seconds and ends
+        after a few minutes; the browser reconnects. Each change is an event
+        named `change` whose data is a LiveEvent.
+      responses:
+        "200":
+          description: The stream.
+          content:
+            text/event-stream:
+              schema: { type: string }
+        "503": { $ref: "#/components/responses/Problem" }
+
+  /api/overview:
+    get:
+      tags: [building]
+      operationId: overview
+      summary: The building as it stands today.
+      responses:
+        "200":
+          description: The overview.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Overview" }
+
+  /api/building:
+    get:
+      tags: [building]
+      operationId: buildingModel
+      summary: The tower's geometry with every home's status, for drawings and 3D.
+      responses:
+        "200":
+          description: The model.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BuildingModel" }
+
+  /api/progress:
+    get:
+      tags: [building]
+      operationId: progress
+      summary: The construction programme as it stands today.
+      responses:
+        "200":
+          description: The programme.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Progress" }
+
+  /api/homes:
+    get:
+      tags: [building]
+      operationId: listHomes
+      summary: The homes, filtered and sorted.
+      description: Unknown or out-of-range filters are dropped; the answer says which filters applied.
+      parameters:
+        - { name: beds, in: query, schema: { type: integer, minimum: 1, maximum: 4 } }
+        - { name: max, in: query, description: Highest price in KES., schema: { type: integer, minimum: 1 } }
+        - { name: floors, in: query, schema: { type: string, enum: [lower, middle, upper] } }
+        - { name: side, in: query, schema: { type: string, enum: [river, garden] } }
+        - { name: show, in: query, description: "`all` includes homes no longer available.", schema: { type: string, enum: [all] } }
+        - { name: sort, in: query, schema: { type: string, enum: [price, price-desc, floor, size] } }
+        - { name: ids, in: query, description: "Up to twelve homes by number, separated by commas, such as a shortlist. They come back in that order, whatever their status, and the filters are ignored.", schema: { type: string } }
+      responses:
+        "200":
+          description: The list.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HomeList" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /api/homes/{id}:
+    get:
+      tags: [building]
+      operationId: getHome
+      summary: Everything a home's page shows.
+      parameters:
+        - $ref: "#/components/parameters/HomeId"
+      responses:
+        "200":
+          description: The home.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HomeDetail" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /api/homes/{id}/schedule:
+    get:
+      tags: [building]
+      operationId: getSchedule
+      summary: One plan's payment schedule for a home, with the buyer's own mortgage rate and term.
+      parameters:
+        - $ref: "#/components/parameters/HomeId"
+        - { name: plan, in: query, required: true, schema: { type: string, enum: [staged, cash, mortgage] } }
+        - { name: rate, in: query, description: Mortgage rate in basis points., schema: { type: integer, minimum: 500, maximum: 2500 } }
+        - { name: years, in: query, schema: { type: integer, minimum: 5, maximum: 25 } }
+      responses:
+        "200":
+          description: The schedule.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Schedule" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /api/types/{code}:
+    get:
+      tags: [building]
+      operationId: getType
+      summary: A kind of home, its plan and every home of it.
+      parameters:
+        - { name: code, in: path, required: true, schema: { type: string, enum: [A, B, C, D, P, a, b, c, d, p] } }
+      responses:
+        "200":
+          description: The type.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TypeDetail" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /api/plans:
+    get:
+      tags: [building]
+      operationId: typePlans
+      summary: Every type's plan, keyed by type.
+      responses:
+        "200":
+          description: The plans.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [A, B, C, D, P]
+                properties:
+                  A: { $ref: "#/components/schemas/Plan" }
+                  B: { $ref: "#/components/schemas/Plan" }
+                  C: { $ref: "#/components/schemas/Plan" }
+                  D: { $ref: "#/components/schemas/Plan" }
+                  P: { $ref: "#/components/schemas/Plan" }
+
+  /api/payment-plans:
+    get:
+      tags: [building]
+      operationId: paymentPlans
+      summary: Each way to pay, worked out on one price.
+      parameters:
+        - { name: price, in: query, description: In KES; 18,000,000 when left out., schema: { type: integer, minimum: 1000000, maximum: 500000000 } }
+      responses:
+        "200":
+          description: One schedule per plan.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [schedules]
+                properties:
+                  schedules: { type: array, items: { $ref: "#/components/schemas/Schedule" } }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /api/compare:
+    get:
+      tags: [building]
+      operationId: compareHomes
+      summary: Up to three homes side by side.
+      parameters:
+        - { name: homes, in: query, required: true, description: Home numbers separated by commas., schema: { type: string } }
+      responses:
+        "200":
+          description: The homes found, in the order asked for.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [homes]
+                properties:
+                  homes:
+                    type: array
+                    maxItems: 3
+                    items: { $ref: "#/components/schemas/HomeDetail" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /api/price-list.pdf:
+    get:
+      tags: [building]
+      operationId: priceList
+      summary: The current price list as a PDF.
+      responses:
+        "200":
+          description: The PDF.
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+
+  /api/enquiries:
+    post:
+      tags: [visitors]
+      operationId: enquire
+      summary: Ask the sales team a question.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/EnquiryInput" }
+      responses:
+        "201":
+          description: Received.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EnquiryReceived" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "415": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+        "429": { $ref: "#/components/responses/Problem" }
+        "503": { $ref: "#/components/responses/Problem" }
+
+  /api/whatsapp:
+    post:
+      tags: [visitors]
+      operationId: recordWhatsApp
+      summary: Record a tap on a WhatsApp link, with where the visitor came from.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/WhatsAppInput" }
+      responses:
+        "204": { description: Recorded. }
+        "400": { $ref: "#/components/responses/Problem" }
+        "429": { $ref: "#/components/responses/Problem" }
+        "503": { $ref: "#/components/responses/Problem" }
+
+  /api/viewings/calendar:
+    get:
+      tags: [visitors]
+      operationId: viewingCalendar
+      summary: The days and times a visitor can book.
+      responses:
+        "200":
+          description: The calendar.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Calendar" }
+
+  /api/viewings:
+    post:
+      tags: [visitors]
+      operationId: bookViewing
+      summary: Book a viewing at the sales suite.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ViewingInput" }
+      responses:
+        "201":
+          description: Booked.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Viewing" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+        "415": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+        "429": { $ref: "#/components/responses/Problem" }
+        "503": { $ref: "#/components/responses/Problem" }
+
+  /api/viewings/{ref}:
+    get:
+      tags: [visitors]
+      operationId: getViewing
+      summary: A viewing booked from this browser.
+      parameters:
+        - $ref: "#/components/parameters/ViewingRef"
+      responses:
+        "200":
+          description: The viewing.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Viewing" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /api/viewings/{ref}/cancel:
+    post:
+      tags: [visitors]
+      operationId: cancelViewing
+      summary: Cancel a viewing booked from this browser.
+      parameters:
+        - $ref: "#/components/parameters/ViewingRef"
+      responses:
+        "200":
+          description: Cancelled.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Viewing" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /api/viewings/{ref}/calendar.ics:
+    get:
+      tags: [visitors]
+      operationId: viewingCalendarFile
+      summary: A viewing as a calendar file.
+      parameters:
+        - $ref: "#/components/parameters/ViewingRef"
+      responses:
+        "200":
+          description: The calendar file.
+          content:
+            text/calendar:
+              schema: { type: string }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /api/privacy:
+    get:
+      tags: [visitors]
+      operationId: privacy
+      summary: Whether this browser has sent anything there is to delete.
+      responses:
+        "200":
+          description: The answer.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [hasCopy]
+                properties:
+                  hasCopy: { type: boolean }
+
+  /api/privacy/delete:
+    post:
+      tags: [visitors]
+      operationId: deleteMine
+      summary: Delete this browser's private copy, with everything it sent.
+      responses:
+        "204": { description: Deleted. }
+
+components:
+  parameters:
+    HomeId:
+      name: id
+      in: path
+      required: true
+      description: The home's number, its level and position, such as 0704.
+      schema: { type: string, pattern: "^[0-9]{4}$" }
+    ViewingRef:
+      name: ref
+      in: path
+      required: true
+      schema: { type: string }
+
+  responses:
+    Problem:
+      description: A problem document.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+
+  schemas:
+    Problem:
+      type: object
+      description: An error, as RFC 9457 describes.
+      required: [type, title, status]
+      properties:
+        type: { type: string, description: "A URI whose last part names the problem: validation, slot-taken, busy, rate-limited, not-found, server." }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        errors:
+          type: object
+          description: What to say beside each form field that needs another look.
+          additionalProperties: { type: string }
+
+    Date:
+      type: string
+      description: A day in Nairobi.
+      pattern: "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    DateOrEmpty:
+      type: string
+      pattern: "^([0-9]{4}-[0-9]{2}-[0-9]{2})?$"
+    LocalTime:
+      type: string
+      description: A time in Nairobi, to the minute.
+      pattern: "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}$"
+    Rect:
+      type: array
+      description: A rectangle as [x0, y0, x1, y1] in metres.
+      items: { type: number }
+      minItems: 4
+      maxItems: 4
+    Status:
+      type: string
+      enum: [available, held, reserved, sold, withheld]
+
+    Home:
+      type: object
+      required: [id, level, number, type, typeName, typeShort, title, bedrooms, bathrooms, study, dsq, internal, outdoor, outdoorName, facing, facings, aspect, riverView, corner, sun, status, price]
+      properties:
+        id: { type: string }
+        level: { type: integer }
+        number: { type: integer }
+        type: { type: string, enum: [A, B, C, D, P] }
+        typeName: { type: string }
+        typeShort: { type: string }
+        title: { type: string }
+        bedrooms: { type: integer }
+        bathrooms: { type: integer }
+        study: { type: boolean }
+        dsq: { type: boolean }
+        internal: { type: integer, description: Floor area inside, in square metres. }
+        outdoor: { type: integer }
+        outdoorName: { type: string }
+        facing:
+          type: array
+          items: { type: string, enum: [N, S, E, W] }
+        facings: { type: string, description: "Written out: north and west." }
+        aspect: { type: string }
+        riverView: { type: boolean }
+        corner: { type: boolean }
+        sun: { type: number, description: Hours of direct sun on an average day. }
+        status: { $ref: "#/components/schemas/Status" }
+        price:
+          type: [integer, "null"]
+          description: In KES. Null when the home is reserved, sold or withheld.
+
+    TypeSummary:
+      type: object
+      required: [code, name, short, bedrooms, bathrooms, study, dsq, internal, outdoor, outdoorName, parking, summary, features, total, available, withheld, from]
+      properties:
+        code: { type: string, enum: [A, B, C, D, P] }
+        name: { type: string }
+        short: { type: string }
+        bedrooms: { type: integer }
+        bathrooms: { type: integer }
+        study: { type: boolean }
+        dsq: { type: boolean }
+        internal: { type: integer }
+        outdoor: { type: integer }
+        outdoorName: { type: string }
+        parking: { type: integer }
+        summary: { type: string }
+        features: { type: array, items: { type: string } }
+        total: { type: integer }
+        available: { type: integer }
+        withheld: { type: integer, description: Held back for a later release. }
+        from: { type: [integer, "null"] }
+
+    Overview:
+      type: object
+      required: [asOf, available, total, from, counts, types, completion, progress, priceList]
+      properties:
+        asOf: { $ref: "#/components/schemas/Date" }
+        available: { type: integer }
+        total: { type: integer }
+        from: { type: integer }
+        counts:
+          type: object
+          additionalProperties: { type: integer }
+        types: { type: array, items: { $ref: "#/components/schemas/TypeSummary" } }
+        completion: { $ref: "#/components/schemas/Date" }
+        progress: { $ref: "#/components/schemas/ProgressBrief" }
+        priceList: { $ref: "#/components/schemas/DateOrEmpty" }
+
+    ProgressBrief:
+      type: object
+      required: [percent, current, frame]
+      properties:
+        percent: { type: integer }
+        current: { type: string }
+        frame: { type: number }
+
+    Filter:
+      type: object
+      required: [beds, max, floors, side, all, sort]
+      properties:
+        beds: { type: integer }
+        max: { type: integer }
+        floors: { type: string, enum: ["", lower, middle, upper] }
+        side: { type: string, enum: ["", river, garden] }
+        all: { type: boolean }
+        sort: { type: string, enum: [price, price-desc, floor, size] }
+
+    HomeList:
+      type: object
+      required: [homes, filter, available, total, from, types]
+      properties:
+        homes: { type: array, items: { $ref: "#/components/schemas/Home" } }
+        filter: { $ref: "#/components/schemas/Filter" }
+        available: { type: integer }
+        total: { type: integer }
+        from: { type: integer }
+        types: { type: array, items: { $ref: "#/components/schemas/TypeSummary" } }
+
+    HomeDetail:
+      type: object
+      required: [home, type, plan, handed, north, light, floor, schedules, similar]
+      properties:
+        home: { $ref: "#/components/schemas/Home" }
+        type: { $ref: "#/components/schemas/TypeSummary" }
+        plan: { $ref: "#/components/schemas/Plan" }
+        handed: { type: boolean, description: The plan is the mirror image of its type's. }
+        north: { type: integer, description: "Degrees clockwise from the top of the plan to north." }
+        light: { $ref: "#/components/schemas/Light" }
+        floor: { $ref: "#/components/schemas/Floor" }
+        schedules:
+          type: array
+          description: One per payment plan; empty when the home's price is not shown.
+          items: { $ref: "#/components/schemas/Schedule" }
+        similar: { type: array, items: { $ref: "#/components/schemas/Home" } }
+
+    Floor:
+      type: object
+      description: The level a home is on, from above. Rectangles are [x0, z0, x1, z1], north towards smaller z.
+      required: [level, plate, core, homes]
+      properties:
+        level: { type: integer }
+        plate: { $ref: "#/components/schemas/Rect" }
+        core:
+          oneOf:
+            - { $ref: "#/components/schemas/Rect" }
+            - { type: "null" }
+        homes:
+          type: array
+          items:
+            type: object
+            required: [number, foot, bay]
+            properties:
+              number: { type: integer }
+              foot: { $ref: "#/components/schemas/Rect" }
+              bay: { $ref: "#/components/schemas/Rect" }
+
+    Light:
+      type: object
+      required: [months, best, worst, averageDay, morningShare]
+      properties:
+        months:
+          type: array
+          items:
+            type: object
+            required: [month, morning, afternoon]
+            properties:
+              month: { type: integer, minimum: 1, maximum: 12 }
+              morning: { type: number }
+              afternoon: { type: number }
+        best: { type: integer }
+        worst: { type: integer }
+        averageDay: { type: number }
+        morningShare: { type: number }
+
+    Schedule:
+      type: object
+      required: [plan, listPrice, discount, price, completion, instalments, mortgage]
+      properties:
+        plan:
+          type: object
+          required: [code, name, summary, discountBP]
+          properties:
+            code: { type: string, enum: [staged, cash, mortgage] }
+            name: { type: string }
+            summary: { type: string }
+            discountBP: { type: integer }
+        listPrice: { type: integer }
+        discount: { type: integer }
+        price: { type: integer }
+        completion: { $ref: "#/components/schemas/Date" }
+        instalments:
+          type: array
+          items:
+            type: object
+            required: [label, due, amount, percentBP, note]
+            properties:
+              label: { type: string }
+              due: { $ref: "#/components/schemas/DateOrEmpty" }
+              amount: { type: integer }
+              percentBP: { type: integer }
+              note: { type: string }
+        mortgage:
+          oneOf:
+            - type: "null"
+            - type: object
+              required: [loan, rateBP, years, monthly, totalPaid, firstMonth]
+              properties:
+                loan: { type: integer }
+                rateBP: { type: integer }
+                years: { type: integer }
+                monthly: { type: integer }
+                totalPaid: { type: integer }
+                firstMonth: { $ref: "#/components/schemas/Date" }
+
+    TypeDetail:
+      type: object
+      required: [type, plan, homes]
+      properties:
+        type: { $ref: "#/components/schemas/TypeSummary" }
+        plan: { $ref: "#/components/schemas/Plan" }
+        homes: { type: array, items: { $ref: "#/components/schemas/Home" } }
+
+    Plan:
+      type: object
+      description: A floor plan as geometry. y runs from the main façade inwards.
+      required: [type, w, d, rooms, doors, openings, windows, bay, bayCorner, outdoor, outdoorName, outdoorMore, items]
+      properties:
+        type: { type: string }
+        w: { type: number }
+        d: { type: number }
+        rooms:
+          type: array
+          items:
+            type: object
+            required: [name, kind, rects, area, size]
+            properties:
+              name: { type: string }
+              kind: { type: string }
+              rects: { type: array, items: { $ref: "#/components/schemas/Rect" } }
+              area: { type: number }
+              size: { type: string }
+        doors:
+          type: array
+          items:
+            type: object
+            required: [x, y, width, vertical, into, hingeAtEnd, entrance, service]
+            properties:
+              x: { type: number }
+              y: { type: number }
+              width: { type: number }
+              vertical: { type: boolean }
+              into: { type: integer, enum: [-1, 1] }
+              hingeAtEnd: { type: boolean }
+              entrance: { type: boolean }
+              service: { type: boolean }
+        openings: { type: array, items: { $ref: "#/components/schemas/Rect" } }
+        windows: { type: array, items: { $ref: "#/components/schemas/Rect" } }
+        bay: { $ref: "#/components/schemas/Rect" }
+        bayCorner: { type: boolean }
+        outdoor: { $ref: "#/components/schemas/Rect" }
+        outdoorName: { type: string }
+        outdoorMore: { type: array, items: { $ref: "#/components/schemas/Rect" } }
+        items:
+          type: array
+          items:
+            type: object
+            required: [kind, r]
+            properties:
+              kind: { type: string }
+              r: { $ref: "#/components/schemas/Rect" }
+
+    BuildingModel:
+      type: object
+      description: The tower for the drawings and the 3D view. Rectangles are [x0, z0, x1, z1] in metres.
+      required: [plate, core, levels, roof, setback, units, seat, head, lat, lon, status]
+      properties:
+        plate: { $ref: "#/components/schemas/Rect" }
+        core: { $ref: "#/components/schemas/Rect" }
+        levels:
+          type: array
+          items:
+            type: object
+            required: [level, y, h, kind]
+            properties:
+              level: { type: integer }
+              y: { type: number }
+              h: { type: number }
+              kind: { type: string, enum: [ground, amenity, homes, penthouse] }
+        roof: { type: number }
+        setback: { type: number }
+        units:
+          type: array
+          items:
+            type: object
+            required: [id, l, p, t, f, b, k, o]
+            properties:
+              id: { type: string }
+              l: { type: integer, description: Level. }
+              p: { type: integer, description: Position on the floor. }
+              t: { type: string, description: Type code. }
+              f: { $ref: "#/components/schemas/Rect" }
+              b: { $ref: "#/components/schemas/Rect" }
+              c: { type: boolean, description: A corner bay. }
+              k: { $ref: "#/components/schemas/Rect" }
+              o: { type: string, description: "Facings, such as NW." }
+              r: { type: boolean, description: On the river side. }
+        seat: { type: number }
+        head: { type: number }
+        lat: { type: number }
+        lon: { type: number }
+        status:
+          type: object
+          additionalProperties: { $ref: "#/components/schemas/Status" }
+
+    Progress:
+      type: object
+      required: [asOf, percent, frame, current, complete, completion, showFlats, storeys, milestones, photos]
+      properties:
+        asOf: { $ref: "#/components/schemas/Date" }
+        percent: { type: integer }
+        frame: { type: number }
+        current: { type: string }
+        complete: { type: boolean }
+        completion: { $ref: "#/components/schemas/Date" }
+        showFlats: { $ref: "#/components/schemas/Date" }
+        storeys: { type: integer }
+        milestones:
+          type: array
+          items:
+            type: object
+            required: [start, end, title, note, when, status]
+            properties:
+              start: { $ref: "#/components/schemas/Date" }
+              end: { $ref: "#/components/schemas/DateOrEmpty" }
+              title: { type: string }
+              note: { type: string }
+              when: { type: string }
+              status: { type: string, enum: [done, now, next] }
+        photos:
+          type: array
+          items:
+            type: object
+            required: [image, taken, caption]
+            properties:
+              image: { type: string }
+              taken: { $ref: "#/components/schemas/Date" }
+              caption: { type: string }
+
+    Calendar:
+      type: object
+      required: [minutes, days]
+      properties:
+        minutes: { type: integer, description: How long a viewing lasts. }
+        days:
+          type: array
+          items:
+            type: object
+            required: [date, open, reason, blocked, free, slots]
+            properties:
+              date: { $ref: "#/components/schemas/Date" }
+              open: { type: boolean }
+              reason: { type: string }
+              blocked: { type: boolean, description: Closed for a holiday or by the sales team, not the weekly day off. }
+              free: { type: integer }
+              slots:
+                type: array
+                items:
+                  type: object
+                  required: [start, time, left]
+                  properties:
+                    start: { $ref: "#/components/schemas/LocalTime" }
+                    time: { type: string }
+                    left: { type: integer }
+
+    Touch:
+      type: object
+      description: One arrival at the site, as the browser recorded it.
+      required: [source, medium, campaign, referrer, landing, at]
+      properties:
+        source: { type: string, description: utm_source }
+        medium: { type: string, description: utm_medium }
+        campaign: { type: string, description: utm_campaign }
+        referrer: { type: string, description: The address of the site that sent the visitor. }
+        landing: { type: string, description: The first page's path. }
+        at: { type: string, format: date-time }
+    Source:
+      type: object
+      description: The visitor's first arrival, and the one that led here.
+      required: [first, last]
+      properties:
+        first: { $ref: "#/components/schemas/Touch" }
+        last: { $ref: "#/components/schemas/Touch" }
+
+    ContactFields:
+      type: object
+      required: [name, email, phone]
+      properties:
+        name: { type: string }
+        email: { type: string }
+        phone: { type: string }
+        website: { type: string, description: Left empty by people; only robots fill it in. }
+
+    EnquiryInput:
+      allOf:
+        - $ref: "#/components/schemas/ContactFields"
+        - type: object
+          required: [message]
+          properties:
+            message: { type: string }
+            interest: { type: string }
+            home: { type: string }
+            source: { $ref: "#/components/schemas/Source" }
+    EnquiryReceived:
+      type: object
+      required: [firstName, home]
+      properties:
+        firstName: { type: string }
+        home:
+          oneOf:
+            - { $ref: "#/components/schemas/Home" }
+            - { type: "null" }
+
+    WhatsAppInput:
+      type: object
+      properties:
+        home: { type: string }
+        source: { $ref: "#/components/schemas/Source" }
+
+    ViewingInput:
+      allOf:
+        - $ref: "#/components/schemas/ContactFields"
+        - type: object
+          required: [slot, party]
+          properties:
+            slot: { $ref: "#/components/schemas/LocalTime" }
+            party: { type: integer, minimum: 1, maximum: 6 }
+            notes: { type: string }
+            home: { type: string }
+            source: { $ref: "#/components/schemas/Source" }
+    Viewing:
+      type: object
+      required: [ref, name, email, phone, start, minutes, party, notes, status, home, agent, createdAt]
+      properties:
+        ref: { type: string }
+        name: { type: string }
+        email: { type: string }
+        phone: { type: string }
+        start: { $ref: "#/components/schemas/LocalTime" }
+        minutes: { type: integer }
+        party: { type: integer }
+        notes: { type: string }
+        status: { type: string, enum: [booked, attended, no_show, cancelled] }
+        home:
+          oneOf:
+            - { $ref: "#/components/schemas/Home" }
+            - { type: "null" }
+        agent: { type: string, description: The consultant who will show the visitor round. }
+        createdAt: { type: string, format: date-time }
+
+    LiveEvent:
+      type: object
+      required: [type]
+      properties:
+        type: { type: string }
+        id: { type: string }
+        status: { type: string }
+        text: { type: string }

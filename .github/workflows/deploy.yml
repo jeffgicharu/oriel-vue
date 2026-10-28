@@ -1,0 +1,231 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# One deploy at a time. A newer push waits for the running deploy to finish.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Test, build and walk the release
+    runs-on: ubuntu-24.04
+    env:
+      ORIEL_RELEASE: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: api/go.mod
+          cache-dependency-path: api/go.sum
+
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: web/package.json
+
+      # Node 24, the same build that ships inside the release.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+
+      # ---------- The API ----------
+
+      - name: Check the API's formatting
+        working-directory: api
+        run: |
+          unformatted="$(gofmt -l .)"
+          if [ -n "$unformatted" ]; then echo "Not gofmt-ed:"; echo "$unformatted"; exit 1; fi
+
+      - name: Vet the API
+        working-directory: api
+        run: go vet ./...
+
+      # Includes the contract test: every answer checked against openapi.yaml.
+      - name: Test the API
+        working-directory: api
+        run: go test -race -count=1 ./...
+
+      # A static binary for the server's processor, which only has the
+      # baseline x86-64 instructions.
+      - name: Build the API
+        working-directory: api
+        env:
+          CGO_ENABLED: "0"
+          GOOS: linux
+          GOARCH: amd64
+          GOAMD64: v1
+        run: go build -trimpath -ldflags "-s -w -X main.release=$GITHUB_SHA" -o ../release/api/oriel-vue-api ./cmd/oriel-vue-api
+
+      # ---------- The web app ----------
+
+      - name: Install the web app's packages
+        working-directory: web
+        run: pnpm install --frozen-lockfile
+
+      # The site's types come from the same contract the API is tested
+      # against. A change to one without the other stops here.
+      - name: Check the API types are up to date with the contract
+        working-directory: web
+        run: |
+          pnpm api-types
+          git diff --exit-code -- src/api/schema.d.ts
+
+      - name: Draw the content pages' drawings from the building
+        run: ./release/api/oriel-vue-api drawings web/src/generated
+
+      - name: Type-check
+        working-directory: web
+        run: pnpm typecheck
+
+      - name: Unit and component tests
+        working-directory: web
+        run: pnpm test
+
+      - name: Build the web app
+        working-directory: web
+        run: pnpm build
+
+      - name: Assemble the release
+        run: |
+          mkdir -p release/web release/node/bin
+          cp -r web/dist/. release/web/
+          cp "$(command -v node)" release/node/bin/node
+          cp deploy/unavailable.html release/
+          printf '%s' "$GITHUB_SHA" > release/REVISION
+          ./release/node/bin/node --version
+          (cd release/web && ../node/bin/node server.mjs version)
+          du -sh release release/*
+
+      # ---------- Walk it ----------
+
+      # The release starts here as it does on the server: the API on one
+      # port, the web server on another, with throwaway settings. The web
+      # server also passes /api on, standing in for nginx.
+      - name: Start the release
+        run: |
+          data="$(mktemp -d)"
+          {
+            echo "ORIEL_SITE_URL=http://127.0.0.1:8700"
+            echo "ORIEL_SECRET=ci-only-$(openssl rand -hex 24)"
+            echo "ORIEL_DESK_KEY=ci-only-$(openssl rand -hex 12)"
+          } > "$RUNNER_TEMP/api.env"
+          set -a; . "$RUNNER_TEMP/api.env"; set +a
+          ORIEL_API_PORT=8702 ORIEL_DATA="$data" ./release/api/oriel-vue-api serve > "$RUNNER_TEMP/api.log" 2>&1 &
+          (cd release/web && ORIEL_WEB_PORT=8700 ORIEL_API_PORT=8702 ORIEL_PROXY_API=1 ../node/bin/node --max-old-space-size=160 server.mjs > "$RUNNER_TEMP/web.log" 2>&1 &)
+          for i in $(seq 1 40); do
+            curl -fsI http://127.0.0.1:8700/healthz | grep -qi "^x-release: $GITHUB_SHA" && break
+            sleep 0.5
+          done
+          curl -fsS http://127.0.0.1:8700/healthz
+
+      - name: The release gate, as the server runs it
+        run: ./release/api/oriel-vue-api check-release --env-file "$RUNNER_TEMP/api.env" --web http://127.0.0.1:8700 --api http://127.0.0.1:8702 --release "$GITHUB_SHA"
+
+      - name: Install the browsers
+        working-directory: web
+        run: pnpm exec playwright install --with-deps chromium firefox webkit
+
+      - name: The journeys in Chromium, Firefox, WebKit and a phone, with axe
+        working-directory: web
+        env:
+          CI: "1"
+        run: pnpm e2e
+
+      - name: Server logs
+        if: always()
+        run: |
+          echo "--- API"; cat "$RUNNER_TEMP/api.log" || true
+          echo "--- web"; cat "$RUNNER_TEMP/web.log" || true
+
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: playwright-report
+          path: web/playwright-report
+          retention-days: 7
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release
+          path: release
+          if-no-files-found: error
+          retention-days: 7
+
+  deploy:
+    name: Deploy to oriel-vue.jeffgicharu.com
+    needs: build
+    runs-on: ubuntu-24.04
+    environment:
+      name: production
+      url: https://oriel-vue.jeffgicharu.com
+    env:
+      VPS_HOST: ${{ secrets.VPS_HOST }}
+      VPS_USER: ${{ secrets.VPS_USER }}
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: release
+          path: release
+
+      - name: Configure SSH
+        env:
+          UPLOAD_KEY: ${{ secrets.ORIEL_VUE_UPLOAD_KEY }}
+          ACTIVATE_KEY: ${{ secrets.ORIEL_VUE_ACTIVATE_KEY }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$UPLOAD_KEY" > ~/.ssh/upload_key
+          printf '%s\n' "$ACTIVATE_KEY" > ~/.ssh/activate_key
+          chmod 600 ~/.ssh/upload_key ~/.ssh/activate_key
+          printf '%s\n' "$VPS_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 755 release/api/oriel-vue-api release/node/bin/node
+
+      # The upload key can only write into the releases directory, so the
+      # remote path is relative to it. Only the one key is ever offered, so a
+      # wrong key never counts against the server's login limit.
+      - name: Upload the release
+        run: |
+          rsync -az --delete --delay-updates \
+            -e "ssh -i $HOME/.ssh/upload_key -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes" \
+            release/ "$VPS_USER@$VPS_HOST:./$GITHUB_SHA/"
+
+      # The activate key can run one script on the server and nothing else. It
+      # starts the release beside the live one, makes it pass the same gate
+      # there, and only then sends visitors to it.
+      - name: Activate the release
+        run: ssh -i "$HOME/.ssh/activate_key" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes "$VPS_USER@$VPS_HOST" "$GITHUB_SHA"
+
+      - name: Check the live site serves this release
+        run: |
+          for attempt in 1 2 3 4 5 6; do
+            if curl -fsSI https://oriel-vue.jeffgicharu.com/healthz | grep -qi "^x-release: $GITHUB_SHA" \
+              && curl -fsSI https://oriel-vue.jeffgicharu.com/api/healthz | grep -qi "^x-release: $GITHUB_SHA"; then
+              echo "oriel-vue.jeffgicharu.com is serving ${GITHUB_SHA::7}"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "oriel-vue.jeffgicharu.com is not serving ${GITHUB_SHA::7}"
+          exit 1
+
+      # From outside, through Cloudflare, as a visitor arrives.
+      - name: Check the pages load through Cloudflare, each with noindex
+        run: |
+          for path in $(./release/api/oriel-vue-api check-release --print-paths); do
+            headers="$(curl -sS -D - -o /dev/null -A "Mozilla/5.0 (deploy check)" "https://oriel-vue.jeffgicharu.com$path" || true)"
+            status="$(printf '%s' "$headers" | awk 'NR==1{print $2}')"
+            echo "$status $path"
+            [ "$status" = "200" ] || failed=1
+            printf '%s' "$headers" | grep -qi '^x-robots-tag: noindex, nofollow' || { echo "  missing noindex"; failed=1; }
+          done
+          [ -z "${failed:-}" ]

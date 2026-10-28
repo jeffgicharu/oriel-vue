@@ -1,0 +1,48 @@
+{
+  "name": "oriel-vue-web",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "api-types": "openapi-typescript ../api/openapi.yaml -o src/api/schema.d.ts --array-length",
+    "typecheck": "vue-tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",
+    "build": "vite build --emptyOutDir && vite build --ssr src/entry-server.ts --outDir dist/ssr && node scripts/bundle-server.mjs",
+    "test": "vitest run",
+    "e2e": "playwright test"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  },
+  "dependencies": {
+    "@unhead/vue": "3.4.3",
+    "devalue": "6.0.3",
+    "gsap": "3.15.0",
+    "openapi-fetch": "0.17.0",
+    "pinia": "4.1.0",
+    "sortablejs": "1.15.7",
+    "three": "0.186.1",
+    "vue": "3.5.44",
+    "vue-router": "5.4.0"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
+    "@playwright/test": "1.64.1",
+    "@types/node": "^24.19.2",
+    "@types/sortablejs": "1.15.9",
+    "@types/three": "0.186.0",
+    "@vitejs/plugin-vue": "6.0.10",
+    "@vue/test-utils": "2.5.1",
+    "esbuild": "0.28.2",
+    "happy-dom": "21.0.4",
+    "openapi-typescript": "7.13.0",
+    "typescript": "5.9.3",
+    "vite": "8.3.5",
+    "vitest": "5.0.5",
+    "vue-tsc": "3.3.13"
+  }
+}
