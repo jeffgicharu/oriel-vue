@@ -1,6 +1,6 @@
 # Oriel, in Vue
 
-The sales website for Oriel, an apartment tower of 86 homes sold off-plan in Riverside, Nairobi, built with Vue 3 and a Go API. Buyers turn the building in 3D and pick a home floor by floor, filter the homes, open each one's plan, light study and payment schedule, shortlist and compare them, book viewings, ask questions by form or on WhatsApp, and reserve a home, whose page then changes live when the sales team decides. Every page is rendered on the server.
+The sales website and sales desk for Oriel, an apartment tower of 86 homes sold off-plan in Riverside, Nairobi, built with Vue 3 and a Go API. Buyers turn the building in 3D and pick a home floor by floor, filter the homes, open each one's plan, light study and payment schedule, shortlist and compare them, book viewings, ask questions by form or on WhatsApp, and reserve a home, whose page then changes live when the sales team decides. The sales team runs the stock, prices, leads, viewings and reservations from a desk that updates as buyers act, and sees where every lead came from. Every page is rendered on the server.
 
 It is a Vue 3 version of [Oriel](https://github.com/jeffgicharu/oriel). The development, its company and its sales team are invented, and every home, price and sale is sample data.
 
@@ -53,6 +53,17 @@ The explorer and the home page's opening draw the tower with three.js from the s
 
 A buyer can ask to reserve an available home. The home is held for 72 hours, and the buyer's reservation page listens to the API's server-sent events ([`useLiveEvents`](web/src/composables/useLiveEvents.ts)): when the sales team confirms or declines, the page changes without a reload, and the letter of offer can be downloaded as a PDF.
 
+### The sales desk
+
+The team's own pages, under `/desk`, in the same app: a dashboard, the stacking plan, the leads board and table, viewings, reservation decisions, pricing and an activity log ([`src/pages/desk/`](web/src/pages/desk)).
+
+- **Sign-in** is a route guard that runs on the server too ([`src/router/guards.ts`](web/src/router/guards.ts)): a visitor who is not signed in gets a temporary redirect to sign in, and comes back to the page they asked for, never to another site. The session is an HttpOnly cookie the API sets; passwords are checked with bcrypt.
+- **Roles:** the sales manager sees everything; an agent sees their own leads and no pricing. A page for the manager alone tells an agent so, with a 403.
+- **Live:** the desk listens to its own stream of server-sent events, so a question, a viewing or a reservation sent from the website appears at once, with a notice.
+- **Where leads come from:** the dashboard shows the website's leads by channel, with how many went on to view and to reserve, beside a table of the same figures. Each lead's page shows the campaign, referring site and landing page of their first visit and of the visit behind each thing they sent.
+- **The leads board** works by dragging, with SortableJS, and also by the Move button on each card (up, down, or to another stage), so it needs neither a mouse nor a steady hand.
+- **Pricing** is previewed before it is published: every home the new list would reprice, and the change in the value of the stock.
+
 ## The API
 
 Go, with the standard library's router, SQLite through the pure-Go `modernc.org/sqlite`, and `gopdf` for the price list. The domain packages come from Oriel: the building's geometry, the floor plans, the light studies, the payment plans, the construction programme, the pricing and the sample sales history.
@@ -67,8 +78,8 @@ Go, with the standard library's router, SQLite through the pure-Go `modernc.org/
 
 - **Go:** the domain packages' tests, and a contract test that calls every operation with good and bad input and checks each answer against `openapi.yaml`.
 - **Vitest:** stores, composables and the pure modules, the web server's decisions, and server rendering itself: two visitors' pages rendered at the same moment, fifty times, never show each other's data.
-- **Playwright:** the main journeys in Chromium, Firefox, WebKit and a phone: filters in the address, a home's plan and payment plans, booking and cancelling a viewing, asking a question, the API's field errors, the shortlist and comparison, and pages read with scripts turned off.
-- **axe:** every page checked against WCAG 2.2 AA, with no failures allowed.
+- **Playwright:** the main journeys in Chromium, Firefox, WebKit and a phone: filters in the address, a home's plan and payment plans, booking and cancelling a viewing, asking a question, the API's field errors, the shortlist and comparison, reserving, pages read with scripts turned off, and on the desk: signing in and being sent back, moving a lead by dragging and by keyboard alone, a reservation from the website confirmed on the desk, an advert's enquiry arriving with where it came from, and an agent refused pricing.
+- **axe:** every page, public and desk, checked against WCAG 2.2 AA with no failures allowed, and checked for a mismatch between the server's page and the browser's, and for sideways scrolling at 360 and 1280 pixels.
 - **The release gate** (`api/internal/check`) runs on the server against a new release before any visitor reaches it, and again through nginx after: every page, its head tags, its noindex and no-store headers, its files and links, and the API's journeys in a throwaway copy.
 
 ## Running it
