@@ -5,8 +5,9 @@
   outline: none;
 }
 
-/* A button that reads as a link, for actions that change the page rather than leave it. */
-.as-button {
+/* A button that reads as a link, for actions that change the page rather than
+   leave it. The reset weighs nothing, so a link style beside it still applies. */
+:where(.as-button) {
   border: 0;
   padding: 0;
   background: none;
