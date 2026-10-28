@@ -34,6 +34,9 @@ async function drag(page: Page, from: Locator, to: Locator) {
   await page.mouse.move(x + 12, y + 4, { steps: 4 });
   await page.mouse.move(b!.x + Math.min(b!.width / 2, 60), b!.y + 24, { steps: 24 });
   await page.mouse.move(b!.x + Math.min(b!.width / 2, 60) + 2, b!.y + 26, { steps: 2 });
+  // Held over the column a moment before letting go, as a person does. The
+  // board looks for the column under the pointer every 50 ms while dragging.
+  await page.waitForTimeout(150);
   await page.mouse.up();
 }
 
