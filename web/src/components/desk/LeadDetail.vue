@@ -125,7 +125,7 @@ const arrivals = (t: DeskLeadPage["touches"][number]): { label: string; a: DeskA
       <section class="desk-panel" aria-labelledby="lead-touches">
         <h2 id="lead-touches" class="desk-h2">Where they came from</h2>
         <p v-if="page.touches.length === 0" class="desk-empty">Nothing they sent came through the website.</p>
-        <div v-else class="desk-table-wrap" role="region" aria-labelledby="lead-touches" tabindex="0">
+        <div v-else class="desk-table-wrap" role="region" aria-label="Their visits, by what they sent" tabindex="0">
           <table class="desk-table touches">
             <thead>
               <tr>

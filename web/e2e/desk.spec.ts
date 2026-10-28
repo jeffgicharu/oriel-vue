@@ -28,6 +28,9 @@ async function drag(page: Page, from: Locator, to: Locator) {
   const y = a!.y + a!.height - 8;
   await page.mouse.move(x, y);
   await page.mouse.down();
+  // Pressed and held a moment first, as on a touch screen, where the board
+  // waits briefly so that a swipe still scrolls.
+  await page.waitForTimeout(200);
   await page.mouse.move(x + 12, y + 4, { steps: 4 });
   await page.mouse.move(b!.x + Math.min(b!.width / 2, 60), b!.y + 24, { steps: 24 });
   await page.mouse.move(b!.x + Math.min(b!.width / 2, 60) + 2, b!.y + 26, { steps: 2 });
@@ -184,7 +187,7 @@ test.describe("the sales manager's day", () => {
     const row = page.locator("table.desk-table tbody tr", { hasText: name });
     await expect(row).toContainText("Paid social");
     await row.getByRole("link", { name }).click();
-    const where = page.getByRole("region", { name: "Where they came from" });
+    const where = page.getByRole("region", { name: "Their visits, by what they sent" });
     await expect(where).toContainText("october-open-day");
     await expect(where).toContainText("/residences");
 
