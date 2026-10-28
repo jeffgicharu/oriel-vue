@@ -345,7 +345,7 @@ export function mountScene(x: Explorer): () => void {
     if (id) {
       const h = homes.get(id)!;
       tip.hidden = false;
-      tip.innerHTML = `<strong class="mono">${h.id}</strong> ${h.b === 4 ? "Penthouse" : h.b + " bed"}${h.pr ? ` · KES ${(h.pr / 1e6).toFixed(2)}M` : ""} · ${statusName(h.s)}`;
+      tip.innerHTML = `<strong class="mono">${h.id}</strong> ${h.b === 4 ? "Penthouse" : h.b + " bed"}${h.pr ? ` · KES&nbsp;${(h.pr / 1e6).toFixed(2)}M` : ""} · ${statusName(h.s)}`;
       const box = stageEl.getBoundingClientRect();
       tip.style.transform = `translate(${event.clientX - box.left + 16}px, ${event.clientY - box.top + 12}px)`;
     } else {

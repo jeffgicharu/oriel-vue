@@ -12,7 +12,8 @@ export const WHATSAPP_NUMBER = "";
 
 export function whatsappMessage(siteUrl: string, home?: Pick<Home, "id" | "title" | "price"> | null): string {
   if (!home) return `Hello Oriel, I would like to know more about the homes at Oriel, Riverside. ${siteUrl}/residences`;
-  const price = home.price !== null ? `, ${kes(home.price)}` : "";
+  // Written as a person would type it, with an ordinary space.
+  const price = home.price !== null ? `, ${kes(home.price).replace("\u00a0", " ")}` : "";
   return `Hello Oriel, I would like to know more about home ${home.id} (${home.title}${price}): ${siteUrl}/residences/${home.id}`;
 }
 

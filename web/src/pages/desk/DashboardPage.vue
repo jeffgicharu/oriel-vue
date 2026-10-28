@@ -82,7 +82,7 @@ function taps(d: DeskDashboard): number {
               <li v-for="r in data.waiting" :key="r.ref">
                 <RouterLink class="desk-list__row" :to="{ name: 'desk-reservations', hash: `#${r.ref}` }">
                   <span class="mono desk-list__id">{{ r.home }}</span>
-                  <span class="desk-list__main">{{ r.name }}<span class="desk-list__sub">{{ r.planName }} · {{ kes(r.price) }}</span></span>
+                  <span class="desk-list__main">{{ r.name }}<span class="desk-list__sub">{{ r.planName }} · <span class="desk-amount">{{ kes(r.price) }}</span></span></span>
                   <span class="desk-list__aside">{{ lapses(r.holdSecondsLeft) }}</span>
                 </RouterLink>
               </li>

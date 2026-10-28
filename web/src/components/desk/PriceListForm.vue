@@ -43,7 +43,7 @@ const form = useForm({
     for (const code of CODES) {
       const p = parseShillings(v[code]);
       if (p === null || p <= 0) errs[code] = `Type ${code}: please give the base price in shillings.`;
-      else if (p % 10_000 !== 0) errs[code] = `Type ${code}: prices are set to the nearest KES 10,000.`;
+      else if (p % 10_000 !== 0) errs[code] = `Type ${code}: prices are set to the nearest KES\u00a010,000.`;
     }
     if (parsePercentBP(v.floor) === null) errs.floor = "The floor premium should be a percentage, such as 1 or 0.8.";
     if (parsePercentBP(v.river) === null) errs.river = "The river premium should be a percentage, such as 4.";

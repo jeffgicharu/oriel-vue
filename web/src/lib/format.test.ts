@@ -4,15 +4,16 @@ import { drawn, kes, kesShort, longDate, longDateTime, monthYear, ordinal, perce
 describe("money", () => {
   it("writes shillings with commas", () => {
     expect(thousands(18480000)).toBe("18,480,000");
-    expect(kes(950)).toBe("KES 950");
-    expect(kes(-1200)).toBe("KES -1,200");
+    // A no-break space keeps "KES" on the line with its number.
+    expect(kes(950)).toBe("KES\u00a0950");
+    expect(kes(-1200)).toBe("KES\u00a0-1,200");
   });
 
   it("writes prices for headings to two exact decimals", () => {
-    expect(kesShort(17_600_000)).toBe("KES 17.60M");
-    expect(kesShort(11_400_000)).toBe("KES 11.40M");
-    expect(kesShort(1_250_000_000)).toBe("KES 1.25B");
-    expect(kesShort(65_000)).toBe("KES 65K");
+    expect(kesShort(17_600_000)).toBe("KES\u00a017.60M");
+    expect(kesShort(11_400_000)).toBe("KES\u00a011.40M");
+    expect(kesShort(1_250_000_000)).toBe("KES\u00a01.25B");
+    expect(kesShort(65_000)).toBe("KES\u00a065K");
   });
 
   it("writes basis points as a percentage", () => {

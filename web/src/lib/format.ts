@@ -17,9 +17,13 @@ export function thousands(n: number): string {
   return n < 0 ? "-" + out : out;
 }
 
+// "KES" and its number are joined by a no-break space, so a line never ends
+// between them.
+const KES = "KES\u00a0";
+
 /** A whole number of shillings: "KES 17,600,000". */
 export function kes(amount: number): string {
-  return "KES " + thousands(amount);
+  return KES + thousands(amount);
 }
 
 /** A price for headings and labels: "KES 17.60M". Prices are whole multiples of
@@ -27,13 +31,13 @@ export function kes(amount: number): string {
 export function kesShort(amount: number): string {
   if (amount >= 1_000_000_000) {
     const h = Math.round(amount / 10_000_000);
-    return `KES ${Math.floor(h / 100)}.${String(h % 100).padStart(2, "0")}B`;
+    return `${KES}${Math.floor(h / 100)}.${String(h % 100).padStart(2, "0")}B`;
   }
   if (amount >= 1_000_000) {
     const h = Math.round(amount / 10_000);
-    return `KES ${Math.floor(h / 100)}.${String(h % 100).padStart(2, "0")}M`;
+    return `${KES}${Math.floor(h / 100)}.${String(h % 100).padStart(2, "0")}M`;
   }
-  if (amount >= 1_000) return `KES ${Math.floor(amount / 1_000)}K`;
+  if (amount >= 1_000) return `${KES}${Math.floor(amount / 1_000)}K`;
   return kes(amount);
 }
 

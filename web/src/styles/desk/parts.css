@@ -119,6 +119,11 @@
   color: var(--ink-soft);
 }
 
+/* An amount stays on one line: "KES" never parts from its number. */
+.desk-amount {
+  white-space: nowrap;
+}
+
 .desk-list__aside {
   font-size: 12px;
   color: var(--ink-soft);

@@ -283,7 +283,7 @@ const legend: Status[] = ["available", "held", "reserved", "sold"];
               <span class="mono lhome__id">{{ h.id }}</span>
               <span>{{ h.b === 4 ? "Penthouse" : `${h.b} bed` }} · {{ h.f }}</span>
               <span class="lhome__right">
-                <span v-if="h.pr" class="tnum">KES {{ (h.pr / 1e6).toFixed(2) }}M</span>
+                <span v-if="h.pr" class="tnum">KES&nbsp;{{ (h.pr / 1e6).toFixed(2) }}M</span>
                 <span :class="`status status--${h.s}`"><span class="status__swatch" aria-hidden="true" />{{ statusName(h.s) }}</span>
               </span>
             </button>

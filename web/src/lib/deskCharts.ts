@@ -2,7 +2,7 @@
 // homes sold each month, a bar for each label, and the website's leads by
 // channel. The sizes are Oriel's, so the charts read as they did there.
 
-import { thousands } from "./format";
+import { kes } from "./format";
 
 /** A number for an SVG attribute, to one decimal place. */
 export function n1(v: number): string {
@@ -64,7 +64,7 @@ export function monthBars(months: { label: string; sold: number; value: number }
 }
 
 export function monthTitle(b: MonthBar): string {
-  return `${b.label}: ${b.n} sold, KES ${thousands(b.value)}`;
+  return `${b.label}: ${b.n} sold, ${kes(b.value)}`;
 }
 
 export interface HBar {

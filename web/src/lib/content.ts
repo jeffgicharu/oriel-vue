@@ -86,8 +86,8 @@ export function buyingSteps(completion: string): BuyingStep[] {
 export const buyingCosts: [name: string, amount: string, note: string][] = [
   ["Stamp duty", "4% of the price", "Paid to the government when the transfer is registered. It is 4% for homes in a town or city."],
   ["Advocate’s fees", "About 1% to 1.5%, plus VAT", "Set by the Advocates Remuneration Order. You choose your own advocate."],
-  ["Service charge deposit", "Three months’ charge", "Held by the management company. The charge is estimated at KES 65 a square metre a month."],
-  ["Utility deposits", "About KES 15,000", "For water and electricity meters in your name."],
+  ["Service charge deposit", "Three months’ charge", "Held by the management company. The charge is estimated at KES\u00a065 a square metre a month."],
+  ["Utility deposits", "About KES\u00a015,000", "For water and electricity meters in your name."],
   ["Mortgage costs", "If you borrow", "Your bank’s arrangement and valuation fees, and stamp duty on the charge, usually 0.1%."],
 ];
 

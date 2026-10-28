@@ -87,8 +87,8 @@ describe("what the desk reads from its forms", () => {
   });
 
   it("writes a change in money with its sign", () => {
-    expect(signedKes(120_000)).toBe("+KES 120,000");
-    expect(signedKes(-40_000)).toBe("−KES 40,000");
+    expect(signedKes(120_000)).toBe("+KES\u00a0120,000");
+    expect(signedKes(-40_000)).toBe("−KES\u00a040,000");
     expect(signedKes(0)).toBe("no change");
     expect(changePercent(1_000_000, 1_024_000)).toBe("+2.4%");
     expect(changePercent(0, 5)).toBe("");
