@@ -31,8 +31,22 @@ async function check(page: Page, path: string) {
   // Nothing on the page makes it scroll sideways, on a phone or a laptop.
   for (const width of [390, 1280]) {
     await page.setViewportSize({ width, height: 900 });
-    const over = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
-    expect(over, `no sideways scroll at ${width} px`).toBeLessThanOrEqual(0);
+    // The elements past the right edge that are not inside something that scrolls on its own.
+    const past = await page.evaluate(() => {
+      const edge = document.documentElement.clientWidth;
+      if (document.documentElement.scrollWidth <= edge) return [];
+      // The body clips sideways overflow for the page as a whole, so it is not counted.
+      const free = (e: Element) => {
+        for (let p = e.parentElement; p && p !== document.body; p = p.parentElement) if (getComputedStyle(p).overflowX !== "visible") return false;
+        return true;
+      };
+      const found = [...document.querySelectorAll("body *")]
+        .filter((e) => e.getBoundingClientRect().right > edge && free(e))
+        .slice(0, 4)
+        .map((e) => `${e.tagName.toLowerCase()}.${[...e.classList].join(".")} to ${e.getBoundingClientRect().right.toFixed(1)}`);
+      return found.length > 0 ? found : [`the page, ${document.documentElement.scrollWidth - edge} px too wide`];
+    });
+    expect(past, `no sideways scroll at ${width} px`).toEqual([]);
   }
   // Let the drawings finish tracing themselves, so colours are checked as seen.
   await page.emulateMedia({ reducedMotion: "reduce" });
