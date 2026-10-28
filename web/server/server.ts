@@ -212,6 +212,13 @@ const server = http.createServer((req, res) => {
   const url = new URL(req.url ?? "/", "http://localhost");
   const p = url.pathname;
   if (proxyApi && p.startsWith("/api/")) return proxy(req, res);
+  // A one-click link into the sales desk. Only the API sets cookies, so the
+  // link is passed to it, and its answer (the cookies and the move to the
+  // desk) goes back as it is.
+  if (/^\/desk\/enter\/(manager|agent)\/[A-Za-z0-9_-]{10,40}$/.test(p) && req.method === "GET") {
+    req.url = "/api" + p;
+    return proxy(req, res);
+  }
   if (req.method !== "GET" && req.method !== "HEAD") {
     sendText(req, res, 405, "text/plain; charset=utf-8", "Method not allowed", { Allow: "GET, HEAD" });
     return;

@@ -12,7 +12,7 @@ test.describe("accessibility", () => {
     test(`${path} has no accessibility failures, and the browser takes it over as it arrived`, async ({ page }) => {
       const mismatches: string[] = [];
       page.on("console", (m) => {
-        if (m.type() === "error" && /hydrat/i.test(m.text())) mismatches.push(m.text());
+        if ((m.type() === "error" || m.type() === "warning") && /hydrat|mismatch/i.test(m.text())) mismatches.push(m.text().slice(0, 600));
       });
       await page.goto(path);
       await hydrated(page);

@@ -1,13 +1,15 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import { navItems } from "@/lib/nav";
-import { useFrameStore } from "@/stores/frame";
 import { useShortlistStore } from "@/stores/shortlist";
 
-const frame = useFrameStore();
 const shortlist = useShortlistStore();
 const route = useRoute();
+// The section and the header's style come from the route, which is settled
+// before anything renders, so the server and the browser draw the same header.
+const nav = computed(() => route.meta.nav ?? "");
+const over = computed(() => route.meta.headerOver === true);
 
 const open = ref(false);
 const scrolled = ref(false);
@@ -55,7 +57,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <header class="site-header" :class="{ 'site-header--over': frame.page.headerOver, 'is-scrolled': frame.page.headerOver && scrolled }">
+  <header class="site-header" :class="{ 'site-header--over': over, 'is-scrolled': over && scrolled }">
     <div class="wrap site-header__inner">
       <RouterLink class="wordmark" to="/">
         <span class="wordmark__name">ORIEL</span>
@@ -65,7 +67,7 @@ onBeforeUnmount(() => {
       <nav class="site-nav" aria-label="Main">
         <ul role="list">
           <li v-for="item in navItems" :key="item.key">
-            <RouterLink :to="item.href" :aria-current="frame.page.nav === item.key ? 'page' : undefined">{{ item.label }}</RouterLink>
+            <RouterLink :to="item.href" :aria-current="nav === item.key ? 'page' : undefined">{{ item.label }}</RouterLink>
           </li>
         </ul>
       </nav>
@@ -89,7 +91,7 @@ onBeforeUnmount(() => {
     <nav aria-label="Main">
       <ol role="list">
         <li v-for="item in navItems" :key="item.key">
-          <RouterLink :to="item.href" :aria-current="frame.page.nav === item.key ? 'page' : undefined">
+          <RouterLink :to="item.href" :aria-current="nav === item.key ? 'page' : undefined">
             <span>{{ item.label }}</span>
             <span class="label">{{ item.sheet }}</span>
           </RouterLink>

@@ -60,8 +60,10 @@ export function plateSVG(model: BuildingModel, homes: PlateHome[], level: number
     out += `<g class="${cls}" data-home="${home.id}" tabindex="0" role="button" aria-label="${label}">`;
     out += `<rect class="plate__fill" x="${X(fx0)}" y="${Z(fz0)}" width="${(fx1 - fx0) * s}" height="${(fz1 - fz0) * s}"/>`;
     out += `<rect class="plate__bay" x="${X(bx0)}" y="${Z(bz0)}" width="${(bx1 - bx0) * s}" height="${(bz1 - bz0) * s}"/>`;
-    out += `<text class="plate__id" x="${X((fx0 + fx1) / 2)}" y="${Z((fz0 + fz1) / 2) - 4}" text-anchor="middle">${home.id}</text>`;
-    out += `<text class="plate__sub" x="${X((fx0 + fx1) / 2)}" y="${Z((fz0 + fz1) / 2) + 16}" text-anchor="middle">${home.t} · ${statusName(home.s)}</text>`;
+    // One text element with both lines, so its words read with a space between.
+    const cx = X((fx0 + fx1) / 2);
+    const cz = Z((fz0 + fz1) / 2);
+    out += `<text text-anchor="middle"><tspan class="plate__id" x="${cx}" y="${cz - 4}">${home.id}</tspan> <tspan class="plate__sub" x="${cx}" y="${cz + 16}">${home.t} · ${statusName(home.s)}</tspan></text>`;
     out += `</g>`;
   }
   out += `<g class="plate__north" transform="translate(${w - 24} 30)"><path d="M0 -14L6 7L0 2L-6 7Z"/><text y="-20" text-anchor="middle">N</text></g>`;

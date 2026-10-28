@@ -1,7 +1,4 @@
-@import "./tokens.css";
-@import "./base.css";
-@import "./forms.css";
-@import "./components.css";
+/* The site's tokens, base, forms and components are already on every page. */
 @import "./desk/parts.css";
 @import "./desk/pages.css";
 

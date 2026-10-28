@@ -4,7 +4,7 @@ import type { RouteRecordInfo, RouteRecordRaw } from "vue-router";
 // renders the page that was asked for and the browser picks it up from there.
 
 export const routes: RouteRecordRaw[] = [
-  { path: "/", name: "home", component: () => import("@/pages/HomePage.vue") },
+  { path: "/", name: "home", component: () => import("@/pages/HomePage.vue"), meta: { headerOver: true } },
   { path: "/explore", name: "explore", component: () => import("@/pages/ExplorePage.vue"), meta: { nav: "explore" } },
   { path: "/residences", name: "residences", component: () => import("@/pages/ResidencesPage.vue"), meta: { nav: "residences" } },
   // A home's number is its level and position: four digits.
@@ -68,5 +68,11 @@ declare module "vue-router" {
   interface RouteMeta {
     /** The main navigation item the page belongs to. */
     nav?: string;
+    /** The header lies over the page's opening picture. */
+    headerOver?: boolean;
+    /** A page of the sales desk: it has the desk's frame and needs a signed-in member of staff. */
+    desk?: boolean;
+    /** Only the sales manager may open it. */
+    manager?: boolean;
   }
 }
