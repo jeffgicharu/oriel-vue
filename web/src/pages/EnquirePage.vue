@@ -56,9 +56,9 @@ const form = useForm<EnquiryValues, Awaited<ReturnType<typeof contact.enquire>>>
       <p class="lede">About a home, the building, prices or buying off-plan. A sales consultant replies within one working day.</p>
     </header>
     <div class="form-grid">
-      <div v-if="form.status.value === 'sent' && form.result.value" class="booking-card" role="status">
+      <div v-if="form.status.value === 'sent' && form.result.value" id="enquiry-done" class="booking-card">
         <DoneMark :ok="true" />
-        <h2 class="h2">Thank you, {{ form.result.value.firstName }}.</h2>
+        <h2 class="h2" tabindex="-1">Thank you, {{ form.result.value.firstName }}.</h2>
         <p class="lede">Your question is with the sales team. While you wait, you might like to:</p>
         <div class="booking-actions">
           <RouterLink class="btn btn--cobalt" :to="{ name: 'residences' }">See the homes <ArrowIcon /></RouterLink>

@@ -1,7 +1,9 @@
 /* What the Vue site adds to Oriel's styles. */
 
 /* After moving to another page, focus starts at the content, which needs no ring. */
-#main:focus {
+#main:focus,
+h1[tabindex="-1"]:focus,
+h2[tabindex="-1"]:focus {
   outline: none;
 }
 

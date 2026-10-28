@@ -52,6 +52,18 @@ export function useForm<V extends Record<string, unknown>, R>(options: {
     document.getElementById(`${options.id}-errors`)?.focus();
   }
 
+  /**
+   * Brings what took the form's place into view, clear of the header, and
+   * moves focus to its heading, so the visitor sees and hears that it went.
+   */
+  async function showDone() {
+    await nextTick();
+    const done = document.getElementById(`${options.id}-done`);
+    if (!done) return;
+    done.scrollIntoView({ block: "nearest" });
+    done.querySelector<HTMLElement>("h1, h2")?.focus({ preventScroll: true });
+  }
+
   async function submit(): Promise<R | null> {
     if (status.value === "sending") return null;
     problem.value = null;
@@ -67,6 +79,7 @@ export function useForm<V extends Record<string, unknown>, R>(options: {
       const r = await options.send(values);
       result.value = r as never;
       status.value = "sent";
+      await showDone();
       return r;
     } catch (e) {
       status.value = "failed";
