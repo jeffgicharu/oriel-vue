@@ -4,6 +4,7 @@ import { renderToString, type SSRContext } from "vue/server-renderer";
 import { createApi } from "./api/client";
 import { createOriel } from "./app";
 import type { RenderInput, RenderOutput } from "./render";
+import { redirectedToSignIn } from "./router/guards";
 import { useFrameStore } from "./stores/frame";
 
 export type { RenderInput, RenderOutput };
@@ -37,7 +38,10 @@ export async function render(input: RenderInput): Promise<RenderOutput> {
   await router.isReady();
   const route = router.currentRoute.value;
   if (route.redirectedFrom) {
-    return { status: 301, redirect: route.fullPath, html: "", head: emptyHead, state: "", modules: new Set(), unreachable: false };
+    // A page that has moved, such as a type written in lower case, has moved
+    // for good. Being sent to sign in depends on who is asking, so it is not.
+    const status = redirectedToSignIn(router) ? 302 : 301;
+    return { status, redirect: route.fullPath, html: "", head: emptyHead, state: "", modules: new Set(), unreachable: false };
   }
 
   const ctx: SSRContext & { status?: number; modules?: Set<string> } = { status: route.name === "not-found" ? 404 : 200 };

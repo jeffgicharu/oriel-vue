@@ -33,6 +33,22 @@ export const routes: RouteRecordRaw[] = [
   { path: "/reservations/:ref([A-Za-z0-9-]{3,20})", name: "reservation", component: () => import("@/pages/ReservationPage.vue") },
   { path: "/privacy", name: "privacy", component: () => import("@/pages/PrivacyPage.vue") },
   { path: "/terms", name: "terms", component: () => import("@/pages/TermsPage.vue") },
+  // The sales desk: the team's own pages, behind its sign-in.
+  { path: "/desk/sign-in", name: "desk-sign-in", component: () => import("@/pages/desk/SignInPage.vue"), meta: { desk: true } },
+  { path: "/desk", name: "desk", component: () => import("@/pages/desk/DashboardPage.vue"), meta: { desk: true } },
+  { path: "/desk/stack", name: "desk-stack", component: () => import("@/pages/desk/StackPage.vue"), meta: { desk: true } },
+  // A home's drawer opens on the stacking plan; the activity log links to it by the home.
+  {
+    path: "/desk/homes/:id(\\d{4})",
+    redirect: (to) => ({ name: "desk-stack", query: { home: "id" in to.params ? String(to.params.id) : "" } }),
+  },
+  { path: "/desk/leads", name: "desk-leads", component: () => import("@/pages/desk/LeadsPage.vue"), meta: { desk: true } },
+  { path: "/desk/leads/new", name: "desk-lead-new", component: () => import("@/pages/desk/NewLeadPage.vue"), meta: { desk: true } },
+  { path: "/desk/leads/:id(\\d{1,9})", name: "desk-lead", component: () => import("@/pages/desk/LeadPage.vue"), meta: { desk: true } },
+  { path: "/desk/viewings", name: "desk-viewings", component: () => import("@/pages/desk/ViewingsPage.vue"), meta: { desk: true } },
+  { path: "/desk/reservations", name: "desk-reservations", component: () => import("@/pages/desk/ReservationsPage.vue"), meta: { desk: true } },
+  { path: "/desk/pricing", name: "desk-pricing", component: () => import("@/pages/desk/PricingPage.vue"), meta: { desk: true, manager: true } },
+  { path: "/desk/activity", name: "desk-activity", component: () => import("@/pages/desk/ActivityPage.vue"), meta: { desk: true } },
   { path: "/:pathMatch(.*)*", name: "not-found", component: () => import("@/pages/NotFoundPage.vue") },
 ];
 
@@ -58,6 +74,16 @@ export interface RouteNamedMap {
   reservation: RouteRecordInfo<"reservation", "/reservations/:ref", { ref: string }, { ref: string }>;
   privacy: RouteRecordInfo<"privacy", "/privacy", NoParams, NoParams>;
   terms: RouteRecordInfo<"terms", "/terms", NoParams, NoParams>;
+  "desk-sign-in": RouteRecordInfo<"desk-sign-in", "/desk/sign-in", NoParams, NoParams>;
+  desk: RouteRecordInfo<"desk", "/desk", NoParams, NoParams>;
+  "desk-stack": RouteRecordInfo<"desk-stack", "/desk/stack", NoParams, NoParams>;
+  "desk-leads": RouteRecordInfo<"desk-leads", "/desk/leads", NoParams, NoParams>;
+  "desk-lead-new": RouteRecordInfo<"desk-lead-new", "/desk/leads/new", NoParams, NoParams>;
+  "desk-lead": RouteRecordInfo<"desk-lead", "/desk/leads/:id", { id: string }, { id: string }>;
+  "desk-viewings": RouteRecordInfo<"desk-viewings", "/desk/viewings", NoParams, NoParams>;
+  "desk-reservations": RouteRecordInfo<"desk-reservations", "/desk/reservations", NoParams, NoParams>;
+  "desk-pricing": RouteRecordInfo<"desk-pricing", "/desk/pricing", NoParams, NoParams>;
+  "desk-activity": RouteRecordInfo<"desk-activity", "/desk/activity", NoParams, NoParams>;
   "not-found": RouteRecordInfo<"not-found", "/:pathMatch(.*)*", { pathMatch: string | string[] }, { pathMatch: string | string[] }>;
 }
 

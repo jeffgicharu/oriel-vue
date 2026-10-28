@@ -537,3 +537,101 @@ fieldset.chips {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* ---------- What the Vue desk adds ---------- */
+
+/* A dot beside a name in a table cell sits on the line. */
+.desk-table .desk-dot {
+  display: inline-block;
+  vertical-align: baseline;
+}
+
+/* The day's three lists side by side on a wide screen; between, the third
+   takes the whole width under the other two. */
+@media (min-width: 1100px) {
+  .desk-grid--three > :last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (min-width: 1400px) {
+  .desk-grid--three {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .desk-grid--three > :last-child {
+    grid-column: auto;
+  }
+}
+
+/* The website's leads by channel: three bars to a channel, and the figures beside. */
+.channels {
+  display: grid;
+  gap: 18px 28px;
+  align-items: start;
+}
+
+@media (min-width: 1100px) {
+  .channels {
+    grid-template-columns: minmax(0, 3fr) minmax(280px, 2fr);
+  }
+}
+
+.channels__chart {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.channels__key li {
+  font-size: 13px;
+}
+
+.chart-key {
+  display: inline-block;
+  width: 16px;
+  height: 10px;
+  border: 1.2px solid var(--cobalt);
+  background: var(--cobalt-wash);
+}
+
+.chart-key--viewed {
+  background: var(--cobalt);
+}
+
+.chart-key--reserved {
+  border-color: var(--graphite);
+  background: var(--graphite);
+}
+
+.chart__bar--viewed {
+  fill: var(--cobalt);
+}
+
+.chart__bar--reserved {
+  fill: var(--graphite);
+  stroke: var(--graphite);
+}
+
+.chart__bar--viewed:hover,
+.chart__bar--reserved:hover {
+  fill: var(--cobalt-hi);
+}
+
+.chart__value--small {
+  font-size: 11px;
+}
+
+.channels__table .desk-table th,
+.channels__table .desk-table td {
+  padding: 7px 10px;
+}
+
+/* The figures behind a chart, for those who would rather read a table. */
+.chart-figures summary {
+  cursor: pointer;
+}
+
+.chart-figures .desk-table {
+  margin-top: 10px;
+}

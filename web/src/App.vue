@@ -21,7 +21,8 @@ onMounted(() => {
     if (failure || to.path === from.path) return;
     void nextTick(() => {
       announcement.value = document.title;
-      main.value?.focus({ preventScroll: true });
+      // The desk's frame has a main of its own, with the same id.
+      (main.value ?? document.getElementById("main"))?.focus({ preventScroll: true });
     });
   });
 });

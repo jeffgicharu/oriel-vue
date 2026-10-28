@@ -95,6 +95,25 @@ describe("rendering on the server", () => {
     expect(out.redirect).toBe("/residences/types/B");
   });
 
+  it("sends a visitor who is not signed in from the desk to sign in, as a temporary redirect", async () => {
+    const signedOut: RenderInput["fetch"] = async () =>
+      new Response(JSON.stringify({ type: "x/signed-out", title: "Please sign in again.", status: 401 }), { status: 401, headers: { "content-type": "application/problem+json" } });
+    const out = await render(input("/desk/leads?view=table", "", signedOut));
+    expect(out.status).toBe(302);
+    expect(out.redirect?.startsWith("/desk/sign-in?")).toBe(true);
+    expect(new URLSearchParams(out.redirect?.split("?").slice(1).join("?")).get("next")).toBe("/desk/leads?view=table");
+  });
+
+  it("writes the desk's head with noindex and without a canonical address", async () => {
+    const out = await render(input("/desk/sign-in", "", fakeApi({})));
+    expect(out.status).toBe(200);
+    expect(out.head.headTags).toContain("<title>Sign in · Oriel sales desk</title>");
+    expect(out.head.headTags).toContain('<meta name="robots" content="noindex, nofollow">');
+    expect(out.head.headTags).not.toContain("canonical");
+    // The desk's own styles are named, so the server links them in the head.
+    expect(out.modules.has("src/styles/desk.css")).toBe(true);
+  });
+
   it("writes the head on the server, with noindex and the canonical address", async () => {
     const out = await render(input("/terms", "", fakeApi({})));
     expect(out.head.headTags).toContain("<title>Terms of use · Oriel, Riverside</title>");
