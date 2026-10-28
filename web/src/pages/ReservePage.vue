@@ -35,7 +35,7 @@ usePageData(async () => {
 
 usePageMeta(() =>
   missing.value
-    ? { title: "Page not found", description: "This page could not be found at Oriel, Riverside.", path: route.path, sheet: { number: "A-404", name: "Not found" } }
+    ? { title: "Page not found", description: "This page could not be found at Oriel, Riverside.", path: route.path, sheet: { number: "A-710", name: `Reserve ${id.value}` }, quiet: true }
     : {
         title: `Reserve home ${id.value}`,
         description: `Request a reservation on home ${id.value} at Oriel, Riverside. The home is held for 72 hours while the sales team confirms it with a letter of offer.`,

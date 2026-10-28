@@ -26,7 +26,7 @@ usePageData(async () => {
 
 usePageMeta(() =>
   missing.value
-    ? { title: "Page not found", description: "This page could not be found at Oriel, Riverside.", path: route.path, sheet: { number: "A-404", name: "Not found" } }
+    ? { title: "Page not found", description: "This page could not be found at Oriel, Riverside.", path: route.path, sheet: { number: "A-701", name: `Viewing ${ref_.value}` }, quiet: true }
     : {
         title: `Viewing ${ref_.value}`,
         description: "Your viewing at Oriel's sales suite in Riverside, Nairobi.",

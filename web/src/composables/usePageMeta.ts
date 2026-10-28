@@ -1,5 +1,5 @@
 import { useHead } from "@unhead/vue";
-import { computed, getCurrentInstance, inject, toValue, watchEffect, type ComponentInternalInstance, type InjectionKey, type MaybeRefOrGetter } from "vue";
+import { computed, toValue, watchEffect, type MaybeRefOrGetter } from "vue";
 import ogImage from "@/assets/img/og-oriel.png";
 import { useFrameStore, type Sheet } from "@/stores/frame";
 
@@ -19,6 +19,12 @@ export interface PageMeta {
   headerOver?: boolean;
   quiet?: boolean;
   bodyClass?: string;
+  /**
+   * Whether the page sets the site's frame: its section and its sheet
+   * number in the footer. A not-found message shown inside another page
+   * leaves that page's frame as it is.
+   */
+  frame?: boolean;
 }
 
 export const DEFAULT_TITLE = "Oriel · 86 homes in Riverside, Nairobi";
@@ -78,25 +84,16 @@ export function usePageMeta(input: MaybeRefOrGetter<PageMeta>) {
     bodyAttrs: { class: () => meta.value.bodyClass ?? "" },
   });
 
-  const apply = () => {
+  // The frame is set as the page starts. On the server the footer is drawn
+  // while the page's data is still loading, so what goes into the frame
+  // (the section, the sheet number) must come from the address alone, never
+  // from the data; then the browser draws the same frame.
+  watchEffect(() => {
     const m = meta.value;
+    if (m.frame === false) return;
     frame.page.nav = m.nav ?? "";
     frame.page.sheet = m.sheet ?? { number: "A-000", name: "General arrangement" };
     frame.page.headerOver = m.headerOver ?? false;
     frame.page.quiet = m.quiet ?? false;
-  };
-  watchEffect(apply);
-  // On the server nothing reactive runs again once a page has set itself
-  // up, but its data loads after that. usePageData applies the frame again
-  // when the data is in, so the footer's sheet number is the page's own.
-  const instance = getCurrentInstance();
-  const appliers = inject(frameAppliersKey, null);
-  if (import.meta.env.SSR && instance && appliers) appliers.set(instance, apply);
+  });
 }
-
-/**
- * Each page's way to set the frame again once its data is in, for the server.
- * Every app has its own, provided when the app is made, so nothing is shared
- * between two visitors' renders.
- */
-export const frameAppliersKey: InjectionKey<WeakMap<ComponentInternalInstance, () => void>> = Symbol("frame appliers");

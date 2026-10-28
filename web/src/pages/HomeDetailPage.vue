@@ -54,10 +54,11 @@ const bedrooms = computed(() => {
 
 usePageMeta(() => {
   const h = d.value?.home;
+  const sheet = { number: `A-2·${id.value}`, name: `Home ${id.value}` };
   if (!h) {
     return missing.value
-      ? { title: "Page not found", description: "This page could not be found at Oriel, Riverside.", path: route.path, sheet: { number: "A-404", name: "Not found" } }
-      : { title: `Home ${id.value}`, description: `Home ${id.value} at Oriel, Riverside: plan, light study and payment schedule.`, path: route.path, nav: "residences" };
+      ? { title: "Page not found", description: "This page could not be found at Oriel, Riverside.", path: route.path, sheet, nav: "residences" }
+      : { title: `Home ${id.value}`, description: `Home ${id.value} at Oriel, Riverside: plan, light study and payment schedule.`, path: route.path, sheet, nav: "residences" };
   }
   const desc =
     `${h.title} at Oriel, Riverside, facing ${h.facings}. ${h.internal} m² inside with a ${h.outdoor} m² ${h.outdoorName.toLowerCase()}. ` +
@@ -67,7 +68,7 @@ usePageMeta(() => {
     title: `Home ${h.id}, ${h.typeName}`,
     description: desc,
     path: `/residences/${h.id}`,
-    sheet: { number: `A-2·${h.id}`, name: `Home ${h.id}` },
+    sheet,
     nav: "residences",
     bodyClass: onSale.value ? "has-unit-bar" : "",
     jsonLd: [

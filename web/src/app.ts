@@ -2,7 +2,6 @@ import { createPinia } from "pinia";
 import { createSSRApp } from "vue";
 import { apiKey, type Api } from "./api/client";
 import App from "./App.vue";
-import { frameAppliersKey } from "./composables/usePageMeta";
 import { makeRouter } from "./router";
 
 /**
@@ -15,7 +14,6 @@ export function createOriel(api: Api, ssr: boolean) {
   const pinia = createPinia();
   const router = makeRouter(ssr);
   app.provide(apiKey, api);
-  app.provide(frameAppliersKey, new WeakMap());
   app.use(pinia);
   app.use(router);
   return { app, pinia, router };

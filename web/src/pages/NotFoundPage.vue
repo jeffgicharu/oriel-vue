@@ -11,6 +11,8 @@ usePageMeta({
   description: "This page could not be found at Oriel, Riverside.",
   path: route.path,
   sheet: { number: "A-404", name: "Not found" },
+  // Inside a home's or a booking's page, the frame stays that page's.
+  frame: route.name === "not-found",
 });
 </script>
 

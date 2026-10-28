@@ -44,7 +44,7 @@ useLiveEvents("/api/events", (e) => {
 
 usePageMeta(() =>
   missing.value
-    ? { title: "Page not found", description: "This page could not be found at Oriel, Riverside.", path: route.path, sheet: { number: "A-404", name: "Not found" } }
+    ? { title: "Page not found", description: "This page could not be found at Oriel, Riverside.", path: route.path, sheet: { number: "A-711", name: `Reservation ${ref_.value}` }, quiet: true }
     : {
         title: `Reservation ${ref_.value}`,
         description: `Your reservation at Oriel, Riverside.`,
