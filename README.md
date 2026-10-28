@@ -1,6 +1,6 @@
 # Oriel, in Vue
 
-The sales website for Oriel, an apartment tower of 86 homes sold off-plan in Riverside, Nairobi, built with Vue 3 and a Go API. Buyers filter the homes, open each one's plan, light study and payment schedule, shortlist and compare them, book viewings, and ask questions by form or on WhatsApp. Every page is rendered on the server.
+The sales website for Oriel, an apartment tower of 86 homes sold off-plan in Riverside, Nairobi, built with Vue 3 and a Go API. Buyers turn the building in 3D and pick a home floor by floor, filter the homes, open each one's plan, light study and payment schedule, shortlist and compare them, book viewings, ask questions by form or on WhatsApp, and reserve a home, whose page then changes live when the sales team decides. Every page is rendered on the server.
 
 It is a Vue 3 version of [Oriel](https://github.com/jeffgicharu/oriel). The development, its company and its sales team are invented, and every home, price and sale is sample data.
 
@@ -44,6 +44,14 @@ The browser keeps two notes of how a visitor arrived: their first visit, kept fo
 ### WhatsApp
 
 Each home's page and the enquiry page offer a WhatsApp link with a message already written, naming the home, its price and its address. The site has no WhatsApp number of its own, so the link carries none and WhatsApp asks whom to send it to; a business would set its own in `WHATSAPP_NUMBER`. Each tap is recorded with where the visitor came from.
+
+### The building in 3D
+
+The explorer and the home page's opening draw the tower with three.js from the same model the API uses for the plans and prices. Before any 3D code is fetched, the page asks the browser for its graphics renderer: a device without a graphics chip (SwiftShader, llvmpipe) or with data saving turned on gets the flat drawing instead and never downloads three.js. The scene draws only when something moves, and its geometry, textures and listeners are disposed of when the page is left ([`src/three/`](web/src/three)).
+
+### Reservations
+
+A buyer can ask to reserve an available home. The home is held for 72 hours, and the buyer's reservation page listens to the API's server-sent events ([`useLiveEvents`](web/src/composables/useLiveEvents.ts)): when the sales team confirms or declines, the page changes without a reload, and the letter of offer can be downloaded as a PDF.
 
 ## The API
 
