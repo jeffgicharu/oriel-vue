@@ -28,6 +28,12 @@ async function check(page: Page, path: string) {
   await page.goto(path);
   await hydrated(page);
   expect(mismatches, "the page the server sent matches the one the browser renders").toEqual([]);
+  // Nothing on the page makes it scroll sideways, on a phone or a laptop.
+  for (const width of [390, 1280]) {
+    await page.setViewportSize({ width, height: 900 });
+    const over = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(over, `no sideways scroll at ${width} px`).toBeLessThanOrEqual(0);
+  }
   // Let the drawings finish tracing themselves, so colours are checked as seen.
   await page.emulateMedia({ reducedMotion: "reduce" });
   const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();

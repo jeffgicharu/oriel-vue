@@ -111,14 +111,12 @@
   min-width: 0;
 }
 
+/* It wraps rather than cutting off, so a price is never half shown. */
 .desk-list__sub {
   display: block;
   font-size: 12px;
   font-weight: 400;
   color: var(--ink-soft);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .desk-list__aside {

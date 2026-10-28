@@ -464,6 +464,9 @@
 }
 
 .lead-card {
+  /* Holds the Move button's hidden label, which would otherwise widen the
+     page from a column scrolled out of view. */
+  position: relative;
   display: grid;
   gap: 4px;
   padding: 10px 12px;
@@ -1067,7 +1070,17 @@
   flex-basis: 100%;
 }
 
-/* A lead's visits to the website: what they sent, and how they arrived. */
+/* A lead's visits to the website: what they sent, and how they arrived.
+   Tighter than other tables, so its six columns fit the panel. */
+.desk-table.touches th,
+.desk-table.touches td {
+  padding-inline: 8px;
+}
+
+.desk-table.touches .wrap-cell {
+  min-width: 110px;
+}
+
 .touches .touches__sent td {
   padding-top: 14px;
   background: var(--plaster);

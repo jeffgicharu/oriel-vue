@@ -110,7 +110,7 @@ function setBusy(busy: boolean) {
       >
     </nav>
     <template v-if="filter.view === 'board'">
-      <p class="desk-small">Drag a lead to move it along. Moving a lead to Lost asks why.</p>
+      <p class="desk-small">Drag a lead to move it along, or use the ⋯ button on its card. Moving a lead to Lost asks why.</p>
       <RequestView :state="leads.list" :retry="() => leads.loadList(filter, true)" loading-label="Loading the pipeline…">
         <template #default="{ data }">
           <LeadBoard v-if="data.filter.view === 'board'" :columns="data.columns" :now="desk.now" @busy="setBusy" @failed="leads.loadList(filter, true)" />
