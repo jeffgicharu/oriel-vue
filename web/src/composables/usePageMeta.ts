@@ -1,5 +1,5 @@
 import { useHead } from "@unhead/vue";
-import { computed, toValue, watchEffect, type MaybeRefOrGetter } from "vue";
+import { computed, getCurrentInstance, inject, toValue, watchEffect, type ComponentInternalInstance, type InjectionKey, type MaybeRefOrGetter } from "vue";
 import ogImage from "@/assets/img/og-oriel.png";
 import { useFrameStore, type Sheet } from "@/stores/frame";
 
@@ -78,11 +78,25 @@ export function usePageMeta(input: MaybeRefOrGetter<PageMeta>) {
     bodyAttrs: { class: () => meta.value.bodyClass ?? "" },
   });
 
-  watchEffect(() => {
+  const apply = () => {
     const m = meta.value;
     frame.page.nav = m.nav ?? "";
     frame.page.sheet = m.sheet ?? { number: "A-000", name: "General arrangement" };
     frame.page.headerOver = m.headerOver ?? false;
     frame.page.quiet = m.quiet ?? false;
-  });
+  };
+  watchEffect(apply);
+  // On the server nothing reactive runs again once a page has set itself
+  // up, but its data loads after that. usePageData applies the frame again
+  // when the data is in, so the footer's sheet number is the page's own.
+  const instance = getCurrentInstance();
+  const appliers = inject(frameAppliersKey, null);
+  if (import.meta.env.SSR && instance && appliers) appliers.set(instance, apply);
 }
+
+/**
+ * Each page's way to set the frame again once its data is in, for the server.
+ * Every app has its own, provided when the app is made, so nothing is shared
+ * between two visitors' renders.
+ */
+export const frameAppliersKey: InjectionKey<WeakMap<ComponentInternalInstance, () => void>> = Symbol("frame appliers");

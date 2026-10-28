@@ -13,6 +13,9 @@ export default defineConfig(({ isSsrBuild }) => ({
   },
   define: {
     __RELEASE__: JSON.stringify(process.env.ORIEL_RELEASE ?? "dev"),
+    // A page the browser takes over differently from the server's says
+    // where, so the tests that watch for it can name the element.
+    __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: "true",
   },
   build: {
     outDir: isSsrBuild ? "dist/ssr" : "dist/client",

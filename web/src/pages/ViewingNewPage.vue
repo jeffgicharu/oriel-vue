@@ -40,18 +40,14 @@ usePageData(() => Promise.all([contact.loadCalendar(), homeId.value ? homes.load
 
 type Day = Calendar["days"][number];
 const usable = (d: Day) => d.open && d.free > 0;
-const chosenDay = ref("");
 const days = computed(() => contact.calendar.data?.days ?? []);
+// The day the visitor chose, or else the first day with room. Worked out
+// from the calendar rather than set when the page starts, so the server,
+// which has the calendar only once the page has started, renders the same
+// day the browser does.
+const selectedDay = ref("");
+const chosenDay = computed(() => (days.value.some((d) => d.date === selectedDay.value && usable(d)) ? selectedDay.value : (days.value.find(usable)?.date ?? "")));
 const day = computed(() => days.value.find((d) => d.date === chosenDay.value) ?? null);
-
-// The first day with room is chosen to begin with.
-watch(
-  days,
-  (all) => {
-    if (!all.some((d) => d.date === chosenDay.value && usable(d))) chosenDay.value = all.find(usable)?.date ?? "";
-  },
-  { immediate: true },
-);
 
 // Closures worth pointing out under the days: a holiday, a day the sales team
 // has closed, or a day already full. The weekly day off is in the hours.
@@ -85,7 +81,7 @@ const form = useForm<ViewingValues, unknown>({
 });
 
 function chooseDay(date: string) {
-  chosenDay.value = date;
+  selectedDay.value = date;
   if (form.values.slot && !form.values.slot.startsWith(date)) form.values.slot = "";
   form.touched("slot");
 }
