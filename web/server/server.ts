@@ -209,7 +209,9 @@ async function page(req: http.IncomingMessage, res: http.ServerResponse, url: st
 }
 
 const server = http.createServer((req, res) => {
-  const url = new URL(req.url ?? "/", "http://localhost");
+  // Joined rather than resolved, so a path such as //host/ stays a path and is
+  // never read as another site's address.
+  const url = new URL("http://localhost" + (req.url?.startsWith("/") ? req.url : "/"));
   const p = url.pathname;
   if (proxyApi && p.startsWith("/api/")) return proxy(req, res);
   // A one-click link into the sales desk. Only the API sets cookies, so the

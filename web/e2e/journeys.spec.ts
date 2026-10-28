@@ -232,4 +232,16 @@ test.describe("rendered on the server", () => {
     await expect(page.locator("tbody tr").first()).toBeVisible();
     await expect(page).toHaveTitle("Residences · Oriel, Riverside");
   });
+
+  test("a page has one address, and other spellings move to it within the site", async ({ request, baseURL }) => {
+    for (const [from, to] of [
+      ["/residences/?beds=2", "/residences?beds=2"],
+      ["/residences//0504/", "/residences/0504"],
+      ["//evil.example/", "/evil.example"],
+    ]) {
+      const res = await request.get(baseURL + from!, { maxRedirects: 0 });
+      expect(res.status(), from).toBe(301);
+      expect(res.headers()["location"], from).toBe(to);
+    }
+  });
 });
