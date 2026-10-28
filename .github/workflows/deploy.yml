@@ -163,11 +163,14 @@ jobs:
           path: web/playwright-report
           retention-days: 7
 
+      # The web server reads its build's manifest from client/.vite, which
+      # the upload would otherwise leave out as a hidden folder.
       - uses: actions/upload-artifact@v7
         with:
           name: release
           path: release
           if-no-files-found: error
+          include-hidden-files: true
           retention-days: 7
 
   deploy:
