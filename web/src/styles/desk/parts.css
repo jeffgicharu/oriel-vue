@@ -147,6 +147,24 @@
   flex: none;
 }
 
+/* An agent's initials in a ring of their colour, where their name would not fit. */
+.agent-mark {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border: 2px solid;
+  border-radius: 50%;
+  background: var(--plaster-hi);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--graphite);
+}
+
 /* Charts */
 .chart {
   display: block;

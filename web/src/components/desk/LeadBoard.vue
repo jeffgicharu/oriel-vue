@@ -3,7 +3,8 @@ import Sortable, { type SortableEvent } from "sortablejs";
 import { nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 import type { DeskLeads } from "@/api/desk";
 import { isApiError } from "@/api/request";
-import { ago, dayLabel, dotColour, isStage, type Stage } from "@/lib/desk";
+import AgentMark from "@/components/desk/AgentMark.vue";
+import { ago, dayLabel, isStage, type Stage } from "@/lib/desk";
 import { useDeskLeadsStore } from "@/stores/deskLeads";
 
 /**
@@ -206,7 +207,7 @@ onBeforeUnmount(() => {
           </span>
           <span v-if="l.interest" class="lead-card__interest">{{ l.interest }}</span>
           <span class="lead-card__meta">
-            <span class="desk-dot" :style="{ backgroundColor: dotColour(l.agentColour) }" :title="l.agent" />
+            <AgentMark :name="l.agent" :colour="l.agentColour" />
             <span v-if="l.followUpOn && l.stage !== 'won' && l.stage !== 'lost'" class="lead-card__follow" :class="{ 'is-late': l.overdue }">{{ dayLabel(l.followUpOn) }}</span>
             <span class="lead-card__age">{{ ago(l.stageChanged, now) }}</span>
           </span>

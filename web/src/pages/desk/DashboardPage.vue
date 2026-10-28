@@ -2,6 +2,7 @@
 import { computed } from "vue";
 import RequestView from "@/components/RequestView.vue";
 import StatusBadge from "@/components/StatusBadge.vue";
+import AgentMark from "@/components/desk/AgentMark.vue";
 import ChannelChart from "@/components/desk/ChannelChart.vue";
 import DeskHeader from "@/components/desk/DeskHeader.vue";
 import DeskLayout from "@/components/desk/DeskLayout.vue";
@@ -10,7 +11,7 @@ import MonthBars from "@/components/desk/MonthBars.vue";
 import StatusBar from "@/components/desk/StatusBar.vue";
 import type { DeskDashboard } from "@/api/desk";
 import { usePageData } from "@/composables/usePageData";
-import { dayLabel, dotColour, firstName, lapses, partOfDay, plural, stageTitle, trend, weekdayTime } from "@/lib/desk";
+import { dayLabel, firstName, lapses, partOfDay, plural, stageTitle, trend, weekdayTime } from "@/lib/desk";
 import { STATUS_ORDER } from "@/lib/deskCharts";
 import { kes, kesShort, longDate } from "@/lib/format";
 import { useDeskStore } from "@/stores/desk";
@@ -97,8 +98,13 @@ function taps(d: DeskDashboard): number {
             <ul v-else class="desk-list" role="list">
               <li v-for="l in data.followUps" :key="l.id">
                 <RouterLink class="desk-list__row" :to="{ name: 'desk-lead', params: { id: String(l.id) } }">
-                  <span class="desk-dot" :style="{ backgroundColor: dotColour(l.agentColour) }" :title="l.agent" aria-hidden="true" />
-                  <span class="desk-list__main">{{ l.name }}<span class="desk-list__sub">{{ stageTitle(l.stage) }} · {{ l.interest }}</span></span>
+                  <AgentMark :name="l.agent" :colour="l.agentColour" quiet />
+                  <span class="desk-list__main"
+                    >{{ l.name
+                    }}<span class="desk-list__sub"
+                      >{{ stageTitle(l.stage) }} · {{ l.interest }}<span class="visually-hidden"> · with {{ l.agent }}</span></span
+                    ></span
+                  >
                   <span class="desk-list__aside" :class="{ 'is-late': l.followUpOn < desk.today }">{{ dayLabel(l.followUpOn) }}</span>
                 </RouterLink>
               </li>
@@ -106,7 +112,7 @@ function taps(d: DeskDashboard): number {
           </section>
           <section class="desk-panel" aria-labelledby="dash-week">
             <div class="desk-panel__head">
-              <h2 id="dash-week" class="desk-h2">Viewings this week</h2>
+              <h2 id="dash-week" class="desk-h2">Viewings in the next seven days</h2>
               <RouterLink class="desk-link" :to="{ name: 'desk-viewings' }">Agenda</RouterLink>
             </div>
             <p v-if="data.week.length === 0" class="desk-empty">No viewings booked in the next seven days.</p>
