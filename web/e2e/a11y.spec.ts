@@ -40,10 +40,10 @@ async function check(page: Page, path: string) {
         for (let p = e.parentElement; p && p !== document.body; p = p.parentElement) if (getComputedStyle(p).overflowX !== "visible") return false;
         return true;
       };
-      const found = [...document.querySelectorAll("body *")]
+      const found = Array.from(document.querySelectorAll("body *"))
         .filter((e) => e.getBoundingClientRect().right > edge && free(e))
         .slice(0, 4)
-        .map((e) => `${e.tagName.toLowerCase()}.${[...e.classList].join(".")} to ${e.getBoundingClientRect().right.toFixed(1)}`);
+        .map((e) => `${e.tagName.toLowerCase()}.${Array.from(e.classList).join(".")} to ${e.getBoundingClientRect().right.toFixed(1)}`);
       return found.length > 0 ? found : [`the page, ${document.documentElement.scrollWidth - edge} px too wide`];
     });
     expect(past, `no sideways scroll at ${width} px`).toEqual([]);
